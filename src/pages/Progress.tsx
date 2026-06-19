@@ -45,12 +45,14 @@ export default function Progress() {
   const totalSaved = Math.max(0, (lastAvg - currentAvg) * thisMonthLogs.length)
 
   return (
-    <section aria-label="Progress and goals">
-      <h1 className="text-xl font-semibold text-gray-900 mb-6">Your Progress</h1>
+    <section aria-label="Progress and goals" className="animate-slide-up">
+      <div className="mb-6 pb-5 border-b border-[#D4E4CC]">
+        <h1 className="font-display text-2xl font-bold text-[#1A2E1A]">Your Progress</h1>
+      </div>
 
       {/* Goal card */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
-        <h2 className="text-base font-semibold text-gray-900 mb-3">Monthly Goal</h2>
+      <div className="card p-6 mb-4">
+        <h2 className="font-display text-base font-semibold text-[#1A2E1A] mb-4">Monthly Goal</h2>
         <ProgressBar
           current={currentAvg}
           goal={goalKg}
@@ -66,37 +68,34 @@ export default function Progress() {
           { label: 'Best day', value: bestLog ? `${bestLog.kg.toFixed(0)} kg` : '—' },
           { label: 'Total saved', value: `${totalSaved.toFixed(0)} kg` },
         ].map(({ label, value }) => (
-          <div
-            key={label}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center"
-          >
-            <p className="text-xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500 mt-0.5 leading-tight">{label}</p>
+          <div key={label} className="card p-4 text-center">
+            <p className="font-data text-xl font-semibold text-[#1A2E1A]">{value}</p>
+            <p className="text-xs text-muted mt-0.5 leading-tight">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Heatmap */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-4">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Activity</h2>
+      <div className="card p-6 mb-4">
+        <h2 className="font-display text-base font-semibold text-[#1A2E1A] mb-4">Activity</h2>
         <HeatmapCalendar logs={allLogs} />
       </div>
 
       {/* Trend chart */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">30-day trend</h2>
+      <div className="card p-6">
+        <h2 className="font-display text-base font-semibold text-[#1A2E1A] mb-4">30-day trend</h2>
         {chartData.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">
+          <p className="text-sm text-muted text-center py-8">
             Log a few days to see your trend
           </p>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10 }} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#6B7E6B' }} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10, fill: '#6B7E6B' }} />
               <Tooltip
                 formatter={(v: unknown) => [`${Number(v).toFixed(1)} kg`, 'CO₂']}
-                contentStyle={{ fontSize: 12 }}
+                contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #D4E4CC' }}
               />
               <ReferenceLine
                 y={INDIA_AVERAGE_KG_CO2_PER_MONTH}
@@ -110,7 +109,7 @@ export default function Progress() {
                 stroke="#16a34a"
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4 }}
+                activeDot={{ r: 4, fill: '#16a34a' }}
               />
             </LineChart>
           </ResponsiveContainer>

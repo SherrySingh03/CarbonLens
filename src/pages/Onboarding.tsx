@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Car, Zap, Leaf, Bus, Flame, UtensilsCrossed, ArrowRight, ArrowLeft } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { calculateTotal } from '../lib/emissions'
 import type { TransportData, HomeEnergyData, DietData, PurchasesData } from '../types'
@@ -26,10 +27,10 @@ function RadioCard({
       role="radio"
       aria-checked={selected}
       onClick={onClick}
-      className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-green-600 ${
+      className={`w-full text-left p-4 rounded-2xl border transition-all duration-150 focus-ring ${
         selected
-          ? 'border-green-600 bg-green-50 text-green-800'
-          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+          ? 'border-green-500 bg-green-50 text-green-800'
+          : 'border-[#D4E4CC] bg-white text-[#1A2E1A] hover:border-green-300'
       }`}
     >
       {children}
@@ -54,9 +55,9 @@ function Slider({
 }) {
   return (
     <div>
-      <div className="flex justify-between mb-1">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-        <span className="text-sm font-semibold text-green-600">
+      <div className="flex justify-between mb-1.5">
+        <label className="text-sm font-medium text-[#1A2E1A]">{label}</label>
+        <span className="font-data text-sm font-semibold text-green-700">
           {value} {unit}
         </span>
       </div>
@@ -106,21 +107,24 @@ export default function Onboarding() {
   }, [name, goalPct, transport, energy, diet, purchases, liveTotal, saveProfile, saveDailyLog, navigate])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-start justify-center px-4 py-8">
+    <div className="min-h-screen flex items-start justify-center px-4 py-10">
       <div className="w-full max-w-md">
         {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">🌿 CarbonLens</h1>
-          <p className="text-gray-500 text-sm mt-1">Let's understand your carbon footprint</p>
+        <div className="text-center mb-7">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-green-600 rounded-xl mb-3">
+            <Leaf size={20} className="text-white" />
+          </div>
+          <h1 className="font-display text-2xl font-bold text-[#1A2E1A]">CarbonLens</h1>
+          <p className="text-sm text-muted mt-1">Measure your monthly carbon footprint</p>
         </div>
 
         {/* Progress bar */}
         <div className="mb-5">
-          <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+          <div className="flex justify-between text-xs text-muted mb-1.5">
             <span>Step {step + 1} of {STEPS.length}</span>
-            <span>{STEPS[step]}</span>
+            <span className="font-medium text-[#1A2E1A]">{STEPS[step]}</span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#D4E4CC] rounded-full overflow-hidden">
             <div
               className="h-full bg-green-600 rounded-full transition-all duration-300"
               style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
@@ -129,35 +133,36 @@ export default function Onboarding() {
         </div>
 
         {/* Live estimate */}
-        <div className="bg-white rounded-2xl p-4 mb-4 border border-gray-100 shadow-sm flex items-center justify-between">
-          <span className="text-sm text-gray-500">Estimated monthly footprint</span>
-          <span className="text-xl font-bold text-gray-900">
+        <div className="card p-4 mb-4 flex items-center justify-between">
+          <span className="text-sm text-muted">Estimated monthly footprint</span>
+          <span className="font-data text-xl font-semibold text-[#1A2E1A]">
             {liveTotal.toFixed(1)}{' '}
-            <span className="text-sm font-normal text-gray-500">kg CO₂</span>
+            <span className="text-sm font-normal text-muted">kg CO₂</span>
           </span>
         </div>
 
         {/* Step card */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-5">
+        <div className="card p-6 space-y-5">
           {/* Step 1: Transport */}
           {step === 0 && (
             <>
-              <h2 className="text-xl font-semibold text-gray-900">How do you get around?</h2>
+              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">How do you get around?</h2>
               <div className="space-y-2" role="radiogroup" aria-label="Car type">
-                {(
-                  [
-                    ['none', '🚶 No car'],
-                    ['electric', '⚡ Electric car'],
-                    ['petrol', '⛽ Petrol car'],
-                    ['diesel', '🛢️ Diesel car'],
-                  ] as const
-                ).map(([val, label]) => (
+                {([
+                  ['none', 'No car', Bus],
+                  ['electric', 'Electric car', Zap],
+                  ['petrol', 'Petrol car', Car],
+                  ['diesel', 'Diesel car', Car],
+                ] as const).map(([val, label, Icon]) => (
                   <RadioCard
                     key={val}
                     selected={transport.carType === val}
                     onClick={() => setTransport({ ...transport, carType: val })}
                   >
-                    <span className="font-medium">{label}</span>
+                    <span className="flex items-center gap-2 font-medium">
+                      <Icon size={16} className="text-green-600 shrink-0" />
+                      {label}
+                    </span>
                   </RadioCard>
                 ))}
               </div>
@@ -178,7 +183,7 @@ export default function Onboarding() {
                 onChange={(v) => setTransport({ ...transport, transitKm: v })}
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[#1A2E1A] mb-1.5">
                   Monthly flight hours
                 </label>
                 <input
@@ -186,10 +191,8 @@ export default function Onboarding() {
                   min={0}
                   max={500}
                   value={transport.flightHours}
-                  onChange={(e) =>
-                    setTransport({ ...transport, flightHours: Number(e.target.value) })
-                  }
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 focus-visible:ring-2 focus-visible:ring-green-600 outline-none text-gray-900"
+                  onChange={(e) => setTransport({ ...transport, flightHours: Number(e.target.value) })}
+                  className="w-full border border-[#D4E4CC] rounded-xl px-3 py-2 focus-ring outline-none text-[#1A2E1A] bg-white"
                 />
               </div>
             </>
@@ -198,7 +201,7 @@ export default function Onboarding() {
           {/* Step 2: Energy */}
           {step === 1 && (
             <>
-              <h2 className="text-xl font-semibold text-gray-900">Home energy use</h2>
+              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">Home energy use</h2>
               <Slider
                 label="Monthly electricity"
                 value={energy.electricityKwh}
@@ -216,19 +219,20 @@ export default function Onboarding() {
                 onChange={(v) => setEnergy({ ...energy, gasUnits: v })}
               />
               <div className="space-y-2" role="radiogroup" aria-label="Energy source">
-                {(
-                  [
-                    ['grid', '🔌 City grid (DISCOM)'],
-                    ['mixed', '☀️ Mixed / partial solar'],
-                    ['renewable', '🌿 Fully renewable'],
-                  ] as const
-                ).map(([val, label]) => (
+                {([
+                  ['grid', 'City grid (DISCOM)', Zap],
+                  ['mixed', 'Mixed / partial solar', Flame],
+                  ['renewable', 'Fully renewable', Leaf],
+                ] as const).map(([val, label, Icon]) => (
                   <RadioCard
                     key={val}
                     selected={energy.energySource === val}
                     onClick={() => setEnergy({ ...energy, energySource: val })}
                   >
-                    <span className="font-medium">{label}</span>
+                    <span className="flex items-center gap-2 font-medium">
+                      <Icon size={16} className="text-green-600 shrink-0" />
+                      {label}
+                    </span>
                   </RadioCard>
                 ))}
               </div>
@@ -238,44 +242,49 @@ export default function Onboarding() {
           {/* Step 3: Diet */}
           {step === 2 && (
             <>
-              <h2 className="text-xl font-semibold text-gray-900">What do you eat?</h2>
+              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">What do you eat?</h2>
               <div className="space-y-2" role="radiogroup" aria-label="Diet type">
-                {(
-                  [
-                    ['vegan', '🌱 Vegan', 'No animal products'],
-                    ['vegetarian', '🥗 Vegetarian', 'No meat or fish'],
-                    ['average', '🍽️ Average omnivore', 'Balanced mix of everything'],
-                    ['meat-heavy', '🥩 Meat-heavy', 'Meat at most meals'],
-                  ] as const
-                ).map(([val, label, desc]) => (
+                {([
+                  ['vegan', 'Vegan', 'No animal products'],
+                  ['vegetarian', 'Vegetarian', 'No meat or fish'],
+                  ['average', 'Average omnivore', 'Balanced mix of everything'],
+                  ['meat-heavy', 'Meat-heavy', 'Meat at most meals'],
+                ] as const).map(([val, label, desc]) => (
                   <RadioCard
                     key={val}
                     selected={diet.dietType === val}
                     onClick={() => setDiet({ ...diet, dietType: val })}
                   >
-                    <span className="font-medium">{label}</span>
-                    <span className="block text-xs text-gray-500 mt-0.5">{desc}</span>
+                    <span className="flex items-center gap-2">
+                      <UtensilsCrossed size={15} className="text-green-600 shrink-0" />
+                      <span>
+                        <span className="font-medium">{label}</span>
+                        <span className="block text-xs text-muted mt-0.5">{desc}</span>
+                      </span>
+                    </span>
                   </RadioCard>
                 ))}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[#1A2E1A] mb-2">
                   Meals per day
                 </label>
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={() => setDiet({ ...diet, mealCount: Math.max(1, diet.mealCount - 1) })}
-                    className="w-10 h-10 rounded-full border-2 border-gray-200 font-bold text-lg flex items-center justify-center hover:border-green-600 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                    className="w-10 h-10 rounded-full border border-[#D4E4CC] font-bold text-lg flex items-center justify-center hover:border-green-500 transition-colors focus-ring"
                     aria-label="Decrease meals"
                   >
                     −
                   </button>
-                  <span className="text-2xl font-bold w-8 text-center">{diet.mealCount}</span>
+                  <span className="font-data text-2xl font-semibold text-[#1A2E1A] w-8 text-center">
+                    {diet.mealCount}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setDiet({ ...diet, mealCount: Math.min(5, diet.mealCount + 1) })}
-                    className="w-10 h-10 rounded-full border-2 border-gray-200 font-bold text-lg flex items-center justify-center hover:border-green-600 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                    className="w-10 h-10 rounded-full border border-[#D4E4CC] font-bold text-lg flex items-center justify-center hover:border-green-500 transition-colors focus-ring"
                     aria-label="Increase meals"
                   >
                     +
@@ -288,9 +297,9 @@ export default function Onboarding() {
           {/* Step 4: Profile */}
           {step === 3 && (
             <>
-              <h2 className="text-xl font-semibold text-gray-900">Almost there!</h2>
+              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">Almost there</h2>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-medium text-[#1A2E1A] mb-1.5">
                   Your first name
                 </label>
                 <input
@@ -299,7 +308,7 @@ export default function Onboarding() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Priya"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 focus-visible:ring-2 focus-visible:ring-green-600 outline-none text-gray-900"
+                  className="w-full border border-[#D4E4CC] rounded-xl px-3 py-2.5 focus-ring outline-none text-[#1A2E1A] bg-white"
                 />
               </div>
               <Slider
@@ -310,9 +319,9 @@ export default function Onboarding() {
                 unit="%"
                 onChange={setGoalPct}
               />
-              <p className="text-sm text-gray-500 bg-green-50 rounded-xl p-3">
-                You're aiming to cut your footprint by{' '}
-                <strong className="text-green-700">{goalPct}%</strong> this month — that's{' '}
+              <p className="text-sm text-muted bg-green-50 rounded-2xl p-4 border border-green-100">
+                Aiming to cut your footprint by{' '}
+                <strong className="text-green-700">{goalPct}%</strong> — that's{' '}
                 <strong className="text-green-700">
                   {(liveTotal * (goalPct / 100)).toFixed(1)} kg CO₂
                 </strong>{' '}
@@ -321,39 +330,39 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* Navigation buttons */}
-          <div className="flex gap-3 pt-2">
+          {/* Navigation */}
+          <div className="flex gap-3 pt-1">
             {step > 0 && (
               <button
                 type="button"
                 onClick={() => setStep(step - 1)}
-                className="flex-1 border border-gray-200 rounded-xl py-3 font-semibold text-gray-700 hover:bg-gray-50 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-[#D4E4CC] font-semibold text-[#1A2E1A] hover:bg-green-50 transition-colors focus-ring"
               >
-                Back
+                <ArrowLeft size={15} /> Back
               </button>
             )}
             {step < STEPS.length - 1 ? (
               <button
                 type="button"
                 onClick={() => setStep(step + 1)}
-                className="flex-1 bg-green-600 text-white rounded-xl py-3 font-semibold hover:bg-green-700 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 text-white rounded-2xl py-3 font-semibold hover:bg-green-700 transition-colors focus-ring"
               >
-                Continue →
+                Continue <ArrowRight size={15} />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleFinish}
-                className="flex-1 bg-green-600 text-white rounded-xl py-3 font-semibold hover:bg-green-700 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 text-white rounded-2xl py-3 font-semibold hover:bg-green-700 transition-colors focus-ring"
               >
-                See my footprint →
+                See my footprint <ArrowRight size={15} />
               </button>
             )}
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
-          Emission factors based on CEA India 2023 / IPCC data
+        <p className="text-center text-xs text-muted mt-4">
+          Emission factors: CEA India 2023 · IPCC · DEFRA 2023
         </p>
       </div>
     </div>

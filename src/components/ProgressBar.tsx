@@ -19,12 +19,12 @@ export default function ProgressBar({ current, goal, baseline, label }: Progress
   return (
     <div>
       {label && (
-        <div className="flex justify-between text-sm mb-1.5">
-          <span className="font-medium text-gray-700">{label}</span>
+        <div className="flex justify-between text-sm mb-2">
+          <span className="font-medium text-[#1A2E1A]">{label}</span>
           <span className={`font-semibold ${text}`}>{status}</span>
         </div>
       )}
-      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-3 bg-[#D4E4CC] rounded-full overflow-hidden">
         <div
           className={`h-full ${bar} rounded-full transition-all duration-500`}
           style={{ width: `${pct}%` }}
@@ -35,9 +35,9 @@ export default function ProgressBar({ current, goal, baseline, label }: Progress
           aria-label={`Progress: ${pct.toFixed(0)}% of baseline — ${status}`}
         />
       </div>
-      <div className="flex justify-between text-xs text-gray-400 mt-1">
-        <span>{current.toFixed(1)} kg current</span>
-        <span>Goal: {goal.toFixed(1)} kg</span>
+      <div className="flex justify-between text-xs text-muted mt-1.5">
+        <span className="font-data">{current.toFixed(1)} kg current</span>
+        <span className="font-data">Goal: {goal.toFixed(1)} kg</span>
       </div>
     </div>
   )

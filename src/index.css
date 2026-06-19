@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background: linear-gradient(180deg, #EBF2E8 0%, #F3F7F1 30%, #F8FAF7 70%, #FAFBF9 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: #1A2E1A;
+  }
+}
+
+@layer utilities {
+  .card {
+    @apply bg-white rounded-3xl border border-[#D4E4CC] shadow-sm;
+  }
+
+  .card-raised {
+    @apply bg-white rounded-3xl border border-[#D4E4CC] shadow-md;
+  }
+
+  .font-display {
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  }
+
+  .font-data {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-muted {
+    @apply text-[#6B7E6B];
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1;
+  }
+}

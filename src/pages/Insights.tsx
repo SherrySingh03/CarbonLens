@@ -1,15 +1,16 @@
 import { useState } from 'react'
+import { Lightbulb, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import InsightCard from '../components/InsightCard'
 import { fetchInsights } from '../lib/ai'
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
-      <div className="h-3 bg-gray-200 rounded w-full mb-1.5" />
-      <div className="h-3 bg-gray-200 rounded w-2/3 mb-4" />
-      <div className="h-7 bg-gray-200 rounded-full w-1/3" />
+    <div className="card p-5 animate-pulse">
+      <div className="h-4 bg-[#D4E4CC] rounded w-3/4 mb-3" />
+      <div className="h-3 bg-[#D4E4CC] rounded w-full mb-1.5" />
+      <div className="h-3 bg-[#D4E4CC] rounded w-2/3 mb-4" />
+      <div className="h-7 bg-[#D4E4CC] rounded-full w-1/3" />
     </div>
   )
 }
@@ -42,46 +43,49 @@ export default function Insights() {
   }
 
   return (
-    <section aria-label="Personalised reduction plan">
-      <div className="flex items-start justify-between mb-1">
+    <section aria-label="Personalised reduction plan" className="animate-slide-up">
+      <div className="flex items-start justify-between mb-5 pb-5 border-b border-[#D4E4CC]">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Your reduction plan</h1>
+          <h1 className="font-display text-2xl font-bold text-[#1A2E1A]">Your reduction plan</h1>
           {totalPotential > 0 && (
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               Potential saving:{' '}
-              <strong className="text-green-600">{totalPotential.toFixed(1)} kg CO₂/mo</strong>
+              <strong className="text-green-700">{totalPotential.toFixed(1)} kg CO₂/mo</strong>
             </p>
           )}
         </div>
         <button
           onClick={handleRefresh}
           disabled={loading || !todayLog}
-          className="shrink-0 text-sm font-medium text-green-600 border border-green-600 rounded-xl px-3 py-1.5 hover:bg-green-50 transition-colors disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-green-600"
+          className="shrink-0 flex items-center gap-1.5 text-sm font-medium text-green-700 border border-green-300 bg-green-50 rounded-xl px-3 py-2 hover:bg-green-100 transition-colors disabled:opacity-40 focus-ring"
         >
-          {loading ? 'Loading…' : '↻ Refresh tips'}
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Loading…' : 'Refresh tips'}
         </button>
       </div>
 
       {!todayLog && (
-        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mt-3">
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
           Log your footprint first to get personalised tips.
         </p>
       )}
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mt-3">
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-4">
           {error}
         </p>
       )}
 
-      <div className="space-y-3 mt-4">
+      <div className="space-y-3">
         {loading ? (
           [1, 2, 3].map((i) => <SkeletonCard key={i} />)
         ) : uncommitted.length === 0 && tips.length === 0 ? (
-          <div className="text-center py-14 text-gray-400">
-            <p className="text-5xl mb-3">💡</p>
-            <p className="font-medium text-gray-600">No tips yet</p>
-            <p className="text-sm mt-1">Tap Refresh tips to get your personalised plan</p>
+          <div className="card p-10 text-center">
+            <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Lightbulb size={24} className="text-amber-600" />
+            </div>
+            <p className="font-display font-semibold text-[#1A2E1A]">No tips yet</p>
+            <p className="text-sm text-muted mt-1">Tap Refresh tips to get your personalised plan</p>
           </div>
         ) : (
           uncommitted.map((tip) => (
@@ -91,20 +95,18 @@ export default function Insights() {
       </div>
 
       {committed.length > 0 && (
-        <div className="mt-6 border-t border-gray-100 pt-4">
+        <div className="mt-6 border-t border-[#D4E4CC] pt-5">
           <button
             onClick={() => setCommittedOpen((o) => !o)}
-            className="text-sm font-medium text-gray-500 flex items-center gap-1.5 hover:text-gray-700 transition-colors focus-visible:ring-2 focus-visible:ring-green-600 rounded"
+            className="text-sm font-medium text-muted flex items-center gap-1.5 hover:text-[#1A2E1A] transition-colors focus-ring rounded-lg"
             aria-expanded={committedOpen}
           >
-            <span>{committedOpen ? '▾' : '▸'}</span>
-            <span>
-              Committed ({committed.length}) —{' '}
-              <strong className="text-green-600">
-                {committed.reduce((s, t) => s + t.estimatedSavingKgCO2, 0).toFixed(1)} kg CO₂/mo
-              </strong>{' '}
-              saved
-            </span>
+            {committedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            Committed ({committed.length}) —{' '}
+            <strong className="text-green-700">
+              {committed.reduce((s, t) => s + t.estimatedSavingKgCO2, 0).toFixed(1)} kg CO₂/mo
+            </strong>{' '}
+            saved
           </button>
           {committedOpen && (
             <div className="space-y-3 mt-3">

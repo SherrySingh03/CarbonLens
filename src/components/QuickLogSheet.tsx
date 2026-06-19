@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { calculateTotal } from '../lib/emissions'
 import type { FootprintLog, TransportData, HomeEnergyData, DietData, PurchasesData } from '../types'
@@ -44,22 +45,23 @@ export default function QuickLogSheet({
       aria-modal="true"
       aria-label="Quick log today's footprint"
     >
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full bg-white rounded-t-2xl p-6 max-h-[85vh] overflow-y-auto shadow-2xl">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full bg-white rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto shadow-2xl border-t border-[#D4E4CC]">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Log Today's Footprint</h2>
+          <h2 className="font-display text-lg font-bold text-[#1A2E1A]">Log Today</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-900 transition-colors focus-visible:ring-2 focus-visible:ring-green-600 rounded"
+            className="w-8 h-8 flex items-center justify-center rounded-xl border border-[#D4E4CC] text-muted hover:text-[#1A2E1A] transition-colors focus-ring"
             aria-label="Close"
           >
-            ✕
+            <X size={15} />
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* Car type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Car type</label>
+            <p className="text-sm font-medium text-[#1A2E1A] mb-2">Car type</p>
             <div className="grid grid-cols-2 gap-2">
               {(['none', 'electric', 'petrol', 'diesel'] as const).map((t) => (
                 <button
@@ -68,10 +70,10 @@ export default function QuickLogSheet({
                   role="radio"
                   aria-checked={transport.carType === t}
                   onClick={() => setTransport({ ...transport, carType: t })}
-                  className={`py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-green-600 ${
+                  className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all focus-ring ${
                     transport.carType === t
-                      ? 'border-green-600 bg-green-50 text-green-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-[#D4E4CC] text-[#1A2E1A] hover:border-green-300'
                   }`}
                 >
                   {t === 'none' ? 'No car' : t.charAt(0).toUpperCase() + t.slice(1)}
@@ -80,10 +82,11 @@ export default function QuickLogSheet({
             </div>
           </div>
 
+          {/* Car km */}
           <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm font-medium text-gray-700">Car km this month</label>
-              <span className="text-sm font-semibold text-green-600">{transport.carKm} km</span>
+            <div className="flex justify-between mb-1.5">
+              <label className="text-sm font-medium text-[#1A2E1A]">Car km this month</label>
+              <span className="font-data text-sm font-semibold text-green-700">{transport.carKm} km</span>
             </div>
             <input
               type="range"
@@ -95,10 +98,11 @@ export default function QuickLogSheet({
             />
           </div>
 
+          {/* Electricity */}
           <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm font-medium text-gray-700">Electricity kWh/month</label>
-              <span className="text-sm font-semibold text-green-600">{energy.electricityKwh} kWh</span>
+            <div className="flex justify-between mb-1.5">
+              <label className="text-sm font-medium text-[#1A2E1A]">Electricity kWh/month</label>
+              <span className="font-data text-sm font-semibold text-green-700">{energy.electricityKwh} kWh</span>
             </div>
             <input
               type="range"
@@ -110,8 +114,9 @@ export default function QuickLogSheet({
             />
           </div>
 
+          {/* Diet */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Diet</label>
+            <p className="text-sm font-medium text-[#1A2E1A] mb-2">Diet</p>
             <div className="grid grid-cols-2 gap-2">
               {(['vegan', 'vegetarian', 'average', 'meat-heavy'] as const).map((d) => (
                 <button
@@ -120,53 +125,58 @@ export default function QuickLogSheet({
                   role="radio"
                   aria-checked={diet.dietType === d}
                   onClick={() => setDiet({ ...diet, dietType: d })}
-                  className={`py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-green-600 ${
+                  className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all focus-ring ${
                     diet.dietType === d
-                      ? 'border-green-600 bg-green-50 text-green-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-[#D4E4CC] text-[#1A2E1A] hover:border-green-300'
                   }`}
                 >
-                  {d.charAt(0).toUpperCase() + d.slice(1)}
+                  {d === 'meat-heavy' ? 'Meat-heavy' : d.charAt(0).toUpperCase() + d.slice(1)}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Orders */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Online orders this month</label>
+            <p className="text-sm font-medium text-[#1A2E1A] mb-2">Online orders this month</p>
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setPurchases({ ...purchases, onlineOrdersCount: Math.max(0, purchases.onlineOrdersCount - 1) })}
-                className="w-10 h-10 rounded-full border-2 border-gray-200 font-bold text-lg flex items-center justify-center hover:border-green-600 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                className="w-10 h-10 rounded-full border border-[#D4E4CC] font-bold text-lg flex items-center justify-center hover:border-green-500 transition-colors focus-ring"
               >
                 −
               </button>
-              <span className="text-xl font-bold w-8 text-center">{purchases.onlineOrdersCount}</span>
+              <span className="font-data text-xl font-semibold text-[#1A2E1A] w-8 text-center">
+                {purchases.onlineOrdersCount}
+              </span>
               <button
                 type="button"
                 onClick={() => setPurchases({ ...purchases, onlineOrdersCount: purchases.onlineOrdersCount + 1 })}
-                className="w-10 h-10 rounded-full border-2 border-gray-200 font-bold text-lg flex items-center justify-center hover:border-green-600 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
+                className="w-10 h-10 rounded-full border border-[#D4E4CC] font-bold text-lg flex items-center justify-center hover:border-green-500 transition-colors focus-ring"
               >
                 +
               </button>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-gray-100">
-            <p className="text-sm text-gray-500">Estimated total</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {total.toFixed(1)}{' '}
-              <span className="text-base font-normal text-gray-500">kg CO₂</span>
-            </p>
+          {/* Total + save */}
+          <div className="pt-4 border-t border-[#D4E4CC]">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-muted">Estimated total</p>
+              <p className="font-data text-2xl font-semibold text-[#1A2E1A]">
+                {total.toFixed(1)}{' '}
+                <span className="text-base font-normal text-muted">kg CO₂</span>
+              </p>
+            </div>
+            <button
+              onClick={handleSave}
+              className="w-full bg-green-600 text-white rounded-2xl py-3 font-semibold hover:bg-green-700 transition-colors focus-ring"
+            >
+              Save Log
+            </button>
           </div>
-
-          <button
-            onClick={handleSave}
-            className="w-full bg-green-600 text-white rounded-xl py-3 font-semibold hover:bg-green-700 transition-colors focus-visible:ring-2 focus-visible:ring-green-600"
-          >
-            Save Log
-          </button>
         </div>
       </div>
     </div>
