@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const MAX_KG = 500
-const SW = 18 // stroke width
+const SW = 16
 
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
   const rad = ((angle - 90) * Math.PI) / 180
@@ -37,10 +37,22 @@ function useCountUp(target: number, duration = 900): number {
   return value
 }
 
-function getTheme(kg: number): { color: string; trackHigh: string; label: string; badgeBg: string; badgeText: string } {
-  if (kg < 80) return { color: '#16a34a', trackHigh: '#bbf7d0', label: 'Low impact',   badgeBg: '#dcfce7', badgeText: '#15803d' }
-  if (kg < 150) return { color: '#d97706', trackHigh: '#fde68a', label: 'Moderate',    badgeBg: '#fef3c7', badgeText: '#b45309' }
-  return          { color: '#dc2626', trackHigh: '#fecaca', label: 'High impact', badgeBg: '#fee2e2', badgeText: '#b91c1c' }
+function getTheme(kg: number) {
+  if (kg < 80) return {
+    color: '#10b981', glow: 'rgba(16,185,129,0.5)',
+    label: 'Low impact', badgeBg: 'rgba(16,185,129,0.12)', badgeText: '#34d399',
+    zone0: 'rgba(16,185,129,0.18)', zone1: 'rgba(245,158,11,0.10)', zone2: 'rgba(239,68,68,0.08)',
+  }
+  if (kg < 150) return {
+    color: '#f59e0b', glow: 'rgba(245,158,11,0.5)',
+    label: 'Moderate', badgeBg: 'rgba(245,158,11,0.12)', badgeText: '#fbbf24',
+    zone0: 'rgba(16,185,129,0.12)', zone1: 'rgba(245,158,11,0.20)', zone2: 'rgba(239,68,68,0.08)',
+  }
+  return {
+    color: '#ef4444', glow: 'rgba(239,68,68,0.5)',
+    label: 'High impact', badgeBg: 'rgba(239,68,68,0.12)', badgeText: '#f87171',
+    zone0: 'rgba(16,185,129,0.08)', zone1: 'rgba(245,158,11,0.10)', zone2: 'rgba(239,68,68,0.22)',
+  }
 }
 
 interface ScoreRingProps {
@@ -53,24 +65,29 @@ export default function ScoreRing({ kg, size = 240 }: ScoreRingProps) {
   const theme = getTheme(kg)
   const r = (size - SW) / 2
   const cx = size / 2
-
   const displayedAngle = Math.min((displayed / MAX_KG) * 360, 359.99)
 
   return (
     <svg
-      width={size}
-      height={size}
+      width={size} height={size}
       role="img"
       aria-label={`Carbon score: ${kg.toFixed(1)} kg CO₂ this month — ${theme.label}`}
     >
       <title>{`Carbon footprint: ${kg.toFixed(1)} kg CO₂ per month — ${theme.label}`}</title>
 
-      {/* Zone track — pale green / amber / red arcs */}
-      <path d={arcPath(cx, cx, r, 0,   144)} fill="none" stroke="#bbf7d0" strokeWidth={SW} strokeLinecap="butt" />
-      <path d={arcPath(cx, cx, r, 144, 252)} fill="none" stroke="#fde68a" strokeWidth={SW} strokeLinecap="butt" />
-      <path d={arcPath(cx, cx, r, 252, 360)} fill="none" stroke="#fecaca" strokeWidth={SW} strokeLinecap="butt" />
+      <defs>
+        <filter id="score-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
 
-      {/* Progress fill */}
+      {/* zone tracks — subtle dark tinted arcs */}
+      <path d={arcPath(cx, cx, r, 0,   144)} fill="none" stroke={theme.zone0} strokeWidth={SW} strokeLinecap="butt" />
+      <path d={arcPath(cx, cx, r, 144, 252)} fill="none" stroke={theme.zone1} strokeWidth={SW} strokeLinecap="butt" />
+      <path d={arcPath(cx, cx, r, 252, 360)} fill="none" stroke={theme.zone2} strokeWidth={SW} strokeLinecap="butt" />
+
+      {/* progress fill with glow */}
       {displayedAngle > 0 && (
         <path
           d={arcPath(cx, cx, r, 0, displayedAngle)}
@@ -78,56 +95,29 @@ export default function ScoreRing({ kg, size = 240 }: ScoreRingProps) {
           stroke={theme.color}
           strokeWidth={SW}
           strokeLinecap="round"
-          style={{ filter: `drop-shadow(0 0 6px ${theme.color}44)` }}
+          style={{ filter: `drop-shadow(0 0 8px ${theme.glow})` }}
         />
       )}
 
-      {/* Score number */}
-      <text
-        x="50%"
-        y="42%"
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fontSize={size * 0.18}
-        fontWeight="800"
-        fill="#1A2E1A"
+      {/* score number */}
+      <text x="50%" y="42%" dominantBaseline="middle" textAnchor="middle"
+        fontSize={size * 0.18} fontWeight="800" fill="#f8fafc"
         fontFamily="Bricolage Grotesque, system-ui, sans-serif"
-        style={{ fontVariantNumeric: 'tabular-nums' }}
-      >
+        style={{ fontVariantNumeric: 'tabular-nums' }}>
         {displayed}
       </text>
 
-      <text
-        x="50%"
-        y="56%"
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fontSize={size * 0.075}
-        fill="#6B7E6B"
-        fontFamily="system-ui, sans-serif"
-      >
+      <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle"
+        fontSize={size * 0.072} fill="rgba(255,255,255,0.35)"
+        fontFamily="JetBrains Mono, ui-monospace, monospace">
         kg CO₂ / mo
       </text>
 
-      {/* Pill badge */}
-      <rect
-        x={cx - 52}
-        y={size * 0.64}
-        width={104}
-        height={24}
-        rx={12}
-        fill={theme.badgeBg}
-      />
-      <text
-        x="50%"
-        y={size * 0.64 + 12}
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fontSize={size * 0.065}
-        fontWeight="600"
-        fill={theme.badgeText}
-        fontFamily="system-ui, sans-serif"
-      >
+      {/* pill badge */}
+      <rect x={cx - 52} y={size * 0.645} width={104} height={24} rx={12} fill={theme.badgeBg} />
+      <text x="50%" y={size * 0.645 + 12} dominantBaseline="middle" textAnchor="middle"
+        fontSize={size * 0.062} fontWeight="600" fill={theme.badgeText}
+        fontFamily="system-ui, sans-serif">
         {theme.label}
       </text>
     </svg>

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Lightbulb, TrendingUp, PenLine } from 'lucide-react'
+import { LayoutDashboard, Lightbulb, TrendingUp, PenLine, Leaf } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import QuickLogSheet from './QuickLogSheet'
 
@@ -20,35 +20,33 @@ export default function Layout({ children }: { children: ReactNode }) {
     null
 
   return (
-    <div className="min-h-screen flex">
-      {/* Desktop sidebar */}
+    <div className="min-h-screen flex bg-[#080c0a]">
+      {/* desktop sidebar */}
       <nav
-        className="hidden md:flex flex-col w-56 bg-white/80 backdrop-blur-sm border-r border-[#D4E4CC] py-6 px-4 gap-1 shrink-0 sticky top-0 h-screen"
+        className="hidden md:flex flex-col w-56 border-r border-white/5 py-6 px-4 gap-1 shrink-0 sticky top-0 h-screen"
+        style={{ background: 'rgba(8,12,10,0.95)', backdropFilter: 'blur(16px)' }}
         aria-label="Main navigation"
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-3 mb-6">
-          <div className="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-xs font-bold">CL</span>
+        <div className="flex items-center gap-2 px-3 mb-7">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+            <Leaf size={13} className="text-white" />
           </div>
-          <span className="font-display font-bold text-[#1A2E1A]">CarbonLens</span>
+          <span className="font-display font-bold text-sm tracking-tight text-white">CarbonLens</span>
         </div>
 
         {NAV.map(({ to, label, Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
+          <NavLink key={to} to={to}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all focus-ring ${
                 isActive
-                  ? 'bg-green-50 text-green-700 border border-green-100'
-                  : 'text-zinc-500 hover:text-[#1A2E1A] hover:bg-leaf-50'
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'text-zinc-600 hover:text-zinc-200 hover:bg-white/5'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
+                <Icon size={16} strokeWidth={isActive ? 2.5 : 1.75} />
                 {label}
               </>
             )}
@@ -57,49 +55,45 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         <button
           onClick={() => setSheetOpen(true)}
-          className="mt-auto flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition-colors focus-ring"
+          className="mt-auto flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-[#080c0a] bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 transition-all focus-ring shadow-[0_0_20px_rgba(16,185,129,0.25)]"
           aria-label="Log today's footprint"
         >
-          <PenLine size={16} />
-          Log today
+          <PenLine size={15} /> Log today
         </button>
       </nav>
 
-      {/* Main content */}
+      {/* main */}
       <main className="flex-1 pb-24 md:pb-0" id="main-content">
-        {/* Mobile top bar */}
-        <header className="md:hidden sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-[#D4E4CC] px-4 py-3 flex items-center justify-between">
+        <header className="md:hidden sticky top-0 z-10 border-b border-white/5 px-4 py-3 flex items-center justify-between"
+          style={{ background: 'rgba(8,12,10,0.95)', backdropFilter: 'blur(12px)' }}>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-green-600 rounded-md flex items-center justify-center">
-              <span className="text-white text-[10px] font-bold">CL</span>
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Leaf size={11} className="text-white" />
             </div>
-            <span className="font-display font-bold text-sm text-[#1A2E1A]">CarbonLens</span>
+            <span className="font-display font-bold text-sm text-white">CarbonLens</span>
           </div>
           <button
             onClick={() => setSheetOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-semibold rounded-xl focus-ring"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[#080c0a] bg-gradient-to-r from-emerald-400 to-teal-400 text-xs font-semibold rounded-xl focus-ring"
             aria-label="Log today's footprint"
           >
-            <PenLine size={13} />
-            Log
+            <PenLine size={12} /> Log
           </button>
         </header>
-
         <div className="max-w-2xl mx-auto px-4 py-6">{children}</div>
       </main>
 
-      {/* Mobile bottom tab bar */}
+      {/* mobile bottom nav */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-sm border-t border-[#D4E4CC] flex items-center justify-around px-2 py-2 z-10"
+        className="md:hidden fixed bottom-0 inset-x-0 border-t border-white/5 flex items-center justify-around px-2 py-2 z-10"
+        style={{ background: 'rgba(8,12,10,0.96)', backdropFilter: 'blur(12px)' }}
         aria-label="Main navigation"
       >
         {NAV.map(({ to, label, Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
+          <NavLink key={to} to={to}
             className={({ isActive }) =>
               `flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-xs font-medium transition-colors focus-ring ${
-                isActive ? 'text-green-700' : 'text-zinc-400'
+                isActive ? 'text-emerald-400' : 'text-zinc-700'
               }`
             }
           >

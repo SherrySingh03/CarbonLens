@@ -6,23 +6,31 @@
   html {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
   }
 
   body {
-    background: linear-gradient(180deg, #EBF2E8 0%, #F3F7F1 30%, #F8FAF7 70%, #FAFBF9 100%);
-    background-attachment: fixed;
+    background: #080c0a;
     min-height: 100vh;
-    color: #1A2E1A;
+    color: #f8fafc;
   }
 }
 
 @layer utilities {
+  /* glassmorphic surfaces */
   .card {
-    @apply bg-white rounded-3xl border border-[#D4E4CC] shadow-sm;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 1.5rem;
+    backdrop-filter: blur(12px);
   }
 
   .card-raised {
-    @apply bg-white rounded-3xl border border-[#D4E4CC] shadow-md;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 48px rgba(0, 0, 0, 0.5);
   }
 
   .font-display {
@@ -35,10 +43,35 @@
   }
 
   .text-muted {
-    @apply text-[#6B7E6B];
+    color: #71717a;
   }
 
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1;
+    --tw-ring-offset-color: #080c0a;
   }
+
+  /* emerald → teal → lime gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #34d399, #2dd4bf, #a3e635);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-emerald {
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.35);
+  }
+}
+
+/* ticker scroll animation */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* subtle pulse for ambient elements */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.3; }
 }

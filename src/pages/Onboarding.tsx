@@ -29,8 +29,8 @@ function RadioCard({
       onClick={onClick}
       className={`w-full text-left p-4 rounded-2xl border transition-all duration-150 focus-ring ${
         selected
-          ? 'border-green-500 bg-green-50 text-green-800'
-          : 'border-[#D4E4CC] bg-white text-[#1A2E1A] hover:border-green-300'
+          ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-300'
+          : 'border-white/8 bg-white/[0.03] text-zinc-400 hover:border-emerald-500/30 hover:text-zinc-200'
       }`}
     >
       {children}
@@ -56,8 +56,8 @@ function Slider({
   return (
     <div>
       <div className="flex justify-between mb-1.5">
-        <label className="text-sm font-medium text-[#1A2E1A]">{label}</label>
-        <span className="font-data text-sm font-semibold text-green-700">
+        <label className="text-sm font-medium text-zinc-300">{label}</label>
+        <span className="font-data text-sm font-semibold text-emerald-400">
           {value} {unit}
         </span>
       </div>
@@ -67,7 +67,7 @@ function Slider({
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-green-600"
+        className="w-full accent-emerald-500"
       />
     </div>
   )
@@ -103,30 +103,30 @@ export default function Onboarding() {
     }
     saveProfile(profile)
     saveDailyLog(log)
-    navigate('/')
+    navigate('/dashboard')
   }, [name, goalPct, transport, energy, diet, purchases, liveTotal, saveProfile, saveDailyLog, navigate])
 
   return (
-    <div className="min-h-screen flex items-start justify-center px-4 py-10">
+    <div className="min-h-screen flex items-start justify-center px-4 py-10 bg-[#080c0a]">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-7">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-green-600 rounded-xl mb-3">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 bg-gradient-to-br from-emerald-500 to-teal-600">
             <Leaf size={20} className="text-white" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-[#1A2E1A]">CarbonLens</h1>
-          <p className="text-sm text-muted mt-1">Measure your monthly carbon footprint</p>
+          <h1 className="font-display text-2xl font-bold text-white">CarbonLens</h1>
+          <p className="text-sm text-zinc-500 mt-1">Measure your monthly carbon footprint</p>
         </div>
 
-        {/* Progress bar */}
+        {/* Step progress */}
         <div className="mb-5">
-          <div className="flex justify-between text-xs text-muted mb-1.5">
+          <div className="flex justify-between text-xs text-zinc-600 mb-1.5">
             <span>Step {step + 1} of {STEPS.length}</span>
-            <span className="font-medium text-[#1A2E1A]">{STEPS[step]}</span>
+            <span className="font-medium text-zinc-400">{STEPS[step]}</span>
           </div>
-          <div className="h-1.5 bg-[#D4E4CC] rounded-full overflow-hidden">
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
             <div
-              className="h-full bg-green-600 rounded-full transition-all duration-300"
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
               style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
             />
           </div>
@@ -134,19 +134,18 @@ export default function Onboarding() {
 
         {/* Live estimate */}
         <div className="card p-4 mb-4 flex items-center justify-between">
-          <span className="text-sm text-muted">Estimated monthly footprint</span>
-          <span className="font-data text-xl font-semibold text-[#1A2E1A]">
+          <span className="text-sm text-zinc-500">Estimated monthly footprint</span>
+          <span className="font-data text-xl font-semibold text-white">
             {liveTotal.toFixed(1)}{' '}
-            <span className="text-sm font-normal text-muted">kg CO₂</span>
+            <span className="text-sm font-normal text-zinc-500">kg CO₂</span>
           </span>
         </div>
 
         {/* Step card */}
         <div className="card p-6 space-y-5">
-          {/* Step 1: Transport */}
           {step === 0 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">How do you get around?</h2>
+              <h2 className="font-display text-xl font-semibold text-white">How do you get around?</h2>
               <div className="space-y-2" role="radiogroup" aria-label="Car type">
                 {([
                   ['none', 'No car', Bus],
@@ -154,83 +153,47 @@ export default function Onboarding() {
                   ['petrol', 'Petrol car', Car],
                   ['diesel', 'Diesel car', Car],
                 ] as const).map(([val, label, Icon]) => (
-                  <RadioCard
-                    key={val}
-                    selected={transport.carType === val}
-                    onClick={() => setTransport({ ...transport, carType: val })}
-                  >
+                  <RadioCard key={val} selected={transport.carType === val}
+                    onClick={() => setTransport({ ...transport, carType: val })}>
                     <span className="flex items-center gap-2 font-medium">
-                      <Icon size={16} className="text-green-600 shrink-0" />
+                      <Icon size={16} className="text-emerald-400 shrink-0" />
                       {label}
                     </span>
                   </RadioCard>
                 ))}
               </div>
-              <Slider
-                label="Monthly km by car"
-                value={transport.carKm}
-                min={0}
-                max={3000}
-                unit="km"
-                onChange={(v) => setTransport({ ...transport, carKm: v })}
-              />
-              <Slider
-                label="Monthly transit km"
-                value={transport.transitKm}
-                min={0}
-                max={2000}
-                unit="km"
-                onChange={(v) => setTransport({ ...transport, transitKm: v })}
-              />
+              <Slider label="Monthly km by car" value={transport.carKm} min={0} max={3000} unit="km"
+                onChange={(v) => setTransport({ ...transport, carKm: v })} />
+              <Slider label="Monthly transit km" value={transport.transitKm} min={0} max={2000} unit="km"
+                onChange={(v) => setTransport({ ...transport, transitKm: v })} />
               <div>
-                <label className="block text-sm font-medium text-[#1A2E1A] mb-1.5">
-                  Monthly flight hours
-                </label>
+                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Monthly flight hours</label>
                 <input
-                  type="number"
-                  min={0}
-                  max={500}
-                  value={transport.flightHours}
+                  type="number" min={0} max={500} value={transport.flightHours}
                   onChange={(e) => setTransport({ ...transport, flightHours: Number(e.target.value) })}
-                  className="w-full border border-[#D4E4CC] rounded-xl px-3 py-2 focus-ring outline-none text-[#1A2E1A] bg-white"
+                  className="w-full border border-white/8 rounded-xl px-3 py-2 focus-ring outline-none text-white bg-white/[0.03] placeholder:text-zinc-600"
                 />
               </div>
             </>
           )}
 
-          {/* Step 2: Energy */}
           {step === 1 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">Home energy use</h2>
-              <Slider
-                label="Monthly electricity"
-                value={energy.electricityKwh}
-                min={0}
-                max={600}
-                unit="kWh"
-                onChange={(v) => setEnergy({ ...energy, electricityKwh: v })}
-              />
-              <Slider
-                label="Monthly gas"
-                value={energy.gasUnits}
-                min={0}
-                max={50}
-                unit="m³"
-                onChange={(v) => setEnergy({ ...energy, gasUnits: v })}
-              />
+              <h2 className="font-display text-xl font-semibold text-white">Home energy use</h2>
+              <Slider label="Monthly electricity" value={energy.electricityKwh} min={0} max={600} unit="kWh"
+                onChange={(v) => setEnergy({ ...energy, electricityKwh: v })} />
+              <Slider label="Monthly gas" value={energy.gasUnits} min={0} max={50} unit="m³"
+                onChange={(v) => setEnergy({ ...energy, gasUnits: v })} />
               <div className="space-y-2" role="radiogroup" aria-label="Energy source">
                 {([
                   ['grid', 'City grid (DISCOM)', Zap],
                   ['mixed', 'Mixed / partial solar', Flame],
                   ['renewable', 'Fully renewable', Leaf],
                 ] as const).map(([val, label, Icon]) => (
-                  <RadioCard
-                    key={val}
-                    selected={energy.energySource === val}
-                    onClick={() => setEnergy({ ...energy, energySource: val })}
-                  >
+                  <RadioCard key={val} selected={energy.energySource === val}
+                    onClick={() => setEnergy({ ...energy, energySource: val })}>
                     <span className="flex items-center gap-2 font-medium">
-                      <Icon size={16} className="text-green-600 shrink-0" />
+                      <Icon size={16} className="text-emerald-400 shrink-0" />
                       {label}
                     </span>
                   </RadioCard>
@@ -239,10 +202,9 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* Step 3: Diet */}
           {step === 2 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">What do you eat?</h2>
+              <h2 className="font-display text-xl font-semibold text-white">What do you eat?</h2>
               <div className="space-y-2" role="radiogroup" aria-label="Diet type">
                 {([
                   ['vegan', 'Vegan', 'No animal products'],
@@ -250,79 +212,56 @@ export default function Onboarding() {
                   ['average', 'Average omnivore', 'Balanced mix of everything'],
                   ['meat-heavy', 'Meat-heavy', 'Meat at most meals'],
                 ] as const).map(([val, label, desc]) => (
-                  <RadioCard
-                    key={val}
-                    selected={diet.dietType === val}
-                    onClick={() => setDiet({ ...diet, dietType: val })}
-                  >
+                  <RadioCard key={val} selected={diet.dietType === val}
+                    onClick={() => setDiet({ ...diet, dietType: val })}>
                     <span className="flex items-center gap-2">
-                      <UtensilsCrossed size={15} className="text-green-600 shrink-0" />
+                      <UtensilsCrossed size={15} className="text-emerald-400 shrink-0" />
                       <span>
                         <span className="font-medium">{label}</span>
-                        <span className="block text-xs text-muted mt-0.5">{desc}</span>
+                        <span className="block text-xs text-zinc-600 mt-0.5">{desc}</span>
                       </span>
                     </span>
                   </RadioCard>
                 ))}
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#1A2E1A] mb-2">
-                  Meals per day
-                </label>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Meals per day</label>
                 <div className="flex items-center gap-4">
-                  <button
-                    type="button"
+                  <button type="button"
                     onClick={() => setDiet({ ...diet, mealCount: Math.max(1, diet.mealCount - 1) })}
-                    className="w-10 h-10 rounded-full border border-[#D4E4CC] font-bold text-lg flex items-center justify-center hover:border-green-500 transition-colors focus-ring"
-                    aria-label="Decrease meals"
-                  >
-                    −
-                  </button>
-                  <span className="font-data text-2xl font-semibold text-[#1A2E1A] w-8 text-center">
+                    className="w-10 h-10 rounded-full border border-white/8 font-bold text-lg flex items-center justify-center text-zinc-400 hover:border-emerald-500/40 hover:text-zinc-200 transition-colors focus-ring"
+                    aria-label="Decrease meals">−</button>
+                  <span className="font-data text-2xl font-semibold text-white w-8 text-center">
                     {diet.mealCount}
                   </span>
-                  <button
-                    type="button"
+                  <button type="button"
                     onClick={() => setDiet({ ...diet, mealCount: Math.min(5, diet.mealCount + 1) })}
-                    className="w-10 h-10 rounded-full border border-[#D4E4CC] font-bold text-lg flex items-center justify-center hover:border-green-500 transition-colors focus-ring"
-                    aria-label="Increase meals"
-                  >
-                    +
-                  </button>
+                    className="w-10 h-10 rounded-full border border-white/8 font-bold text-lg flex items-center justify-center text-zinc-400 hover:border-emerald-500/40 hover:text-zinc-200 transition-colors focus-ring"
+                    aria-label="Increase meals">+</button>
                 </div>
               </div>
             </>
           )}
 
-          {/* Step 4: Profile */}
           {step === 3 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-[#1A2E1A]">Almost there</h2>
+              <h2 className="font-display text-xl font-semibold text-white">Almost there</h2>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-[#1A2E1A] mb-1.5">
+                <label htmlFor="name" className="block text-sm font-medium text-zinc-300 mb-1.5">
                   Your first name
                 </label>
                 <input
-                  id="name"
-                  type="text"
-                  value={name}
+                  id="name" type="text" value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Priya"
-                  className="w-full border border-[#D4E4CC] rounded-xl px-3 py-2.5 focus-ring outline-none text-[#1A2E1A] bg-white"
+                  className="w-full border border-white/8 rounded-xl px-3 py-2.5 focus-ring outline-none text-white bg-white/[0.03] placeholder:text-zinc-600"
                 />
               </div>
-              <Slider
-                label="Monthly reduction goal"
-                value={goalPct}
-                min={5}
-                max={30}
-                unit="%"
-                onChange={setGoalPct}
-              />
-              <p className="text-sm text-muted bg-green-50 rounded-2xl p-4 border border-green-100">
+              <Slider label="Monthly reduction goal" value={goalPct} min={5} max={30} unit="%" onChange={setGoalPct} />
+              <p className="text-sm text-zinc-500 bg-emerald-500/8 rounded-2xl p-4 border border-emerald-500/15">
                 Aiming to cut your footprint by{' '}
-                <strong className="text-green-700">{goalPct}%</strong> — that's{' '}
-                <strong className="text-green-700">
+                <strong className="text-emerald-400">{goalPct}%</strong> — that's{' '}
+                <strong className="text-emerald-400">
                   {(liveTotal * (goalPct / 100)).toFixed(1)} kg CO₂
                 </strong>{' '}
                 in savings.
@@ -330,38 +269,28 @@ export default function Onboarding() {
             </>
           )}
 
-          {/* Navigation */}
           <div className="flex gap-3 pt-1">
             {step > 0 && (
-              <button
-                type="button"
-                onClick={() => setStep(step - 1)}
-                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-[#D4E4CC] font-semibold text-[#1A2E1A] hover:bg-green-50 transition-colors focus-ring"
-              >
+              <button type="button" onClick={() => setStep(step - 1)}
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-white/8 font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors focus-ring">
                 <ArrowLeft size={15} /> Back
               </button>
             )}
             {step < STEPS.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => setStep(step + 1)}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 text-white rounded-2xl py-3 font-semibold hover:bg-green-700 transition-colors focus-ring"
-              >
+              <button type="button" onClick={() => setStep(step + 1)}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-[#080c0a] rounded-2xl py-3 font-semibold hover:brightness-110 transition-all focus-ring">
                 Continue <ArrowRight size={15} />
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={handleFinish}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 text-white rounded-2xl py-3 font-semibold hover:bg-green-700 transition-colors focus-ring"
-              >
+              <button type="button" onClick={handleFinish}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-[#080c0a] rounded-2xl py-3 font-semibold hover:brightness-110 transition-all focus-ring shadow-[0_0_24px_rgba(16,185,129,0.3)]">
                 See my footprint <ArrowRight size={15} />
               </button>
             )}
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted mt-4">
+        <p className="text-center text-xs text-zinc-700 mt-4">
           Emission factors: CEA India 2023 · IPCC · DEFRA 2023
         </p>
       </div>
