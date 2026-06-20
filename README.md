@@ -137,4 +137,4 @@ Live grid intensity for zone IN-SO sourced from [Electricity Maps](https://www.e
 
 ## Tech Stack
 
-React 18 · Vite · TypeScript · Tailwind CSS v3 · React Router v6 · Recharts · Vitest · Vercel Edge Functions · Google Gemini (gemini-3.5-flash)
+React 18 · Vite · TypeScript · Tailwind CSS v3 · React Router v6 · Recharts · Vitest · Vercel Edge Functions · Google Gemini (gemini-2.5-flash)
