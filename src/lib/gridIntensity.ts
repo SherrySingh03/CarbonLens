@@ -1,22 +1,38 @@
 const FALLBACK_KG_PER_KWH = 0.716
 const CACHE_KEY = 'cl_grid_intensity'
-const ZONE = 'IN-SO'
 
-export async function fetchGridIntensity(): Promise<number> {
+export interface GridIntensityResult {
+  kgPerKwh: number
+  isLive: boolean
+  zone?: string
+}
+
+export async function fetchGridIntensity(): Promise<GridIntensityResult> {
   const cached = sessionStorage.getItem(CACHE_KEY)
-  if (cached) return parseFloat(cached)
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached)
+      if (parsed && typeof parsed === 'object' && typeof parsed.kgPerKwh === 'number') {
+        return parsed as GridIntensityResult
+      }
+      // old format was a plain number — fall through to re-fetch
+    } catch {
+      // ignore
+    }
+  }
 
   try {
-    const res = await fetch(
-      `https://api.electricitymap.org/v3/carbon-intensity/latest?zone=${ZONE}`,
-      { headers: { 'auth-token': import.meta.env.VITE_ELECTRICITY_MAPS_KEY ?? '' } }
-    )
-    if (!res.ok) throw new Error('API error')
-    const data = await res.json() as { carbonIntensity: number }
-    const kgPerKwh = data.carbonIntensity / 1000
-    sessionStorage.setItem(CACHE_KEY, String(kgPerKwh))
-    return kgPerKwh
+    const res = await fetch('/api/grid-intensity')
+    if (!res.ok) throw new Error('grid intensity fetch failed')
+    const data = await res.json() as { kgPerKwh: number; source: string; zone?: string }
+    const result: GridIntensityResult = {
+      kgPerKwh: data.kgPerKwh,
+      isLive: data.source === 'live',
+      zone: data.zone,
+    }
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(result))
+    return result
   } catch {
-    return FALLBACK_KG_PER_KWH
+    return { kgPerKwh: FALLBACK_KG_PER_KWH, isLive: false }
   }
 }

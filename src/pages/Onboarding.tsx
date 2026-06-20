@@ -12,64 +12,51 @@ const DEFAULT_ENERGY: HomeEnergyData = { electricityKwh: 150, gasUnits: 5, energ
 const DEFAULT_DIET: DietData = { dietType: 'average', mealCount: 3 }
 const DEFAULT_PURCHASES: PurchasesData = { onlineOrdersCount: 2, newClothingItems: 0, electronicsItems: 0 }
 
-function RadioCard({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
+function RadioCard({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onClick}
-      className={`w-full text-left p-4 rounded-2xl border transition-all duration-150 focus-ring ${
-        selected
-          ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-300'
-          : 'border-white/8 bg-white/[0.03] text-zinc-400 hover:border-emerald-500/30 hover:text-zinc-200'
-      }`}
+      type="button" role="radio" aria-checked={selected} onClick={onClick}
+      className="w-full text-left p-4 rounded-2xl transition-all duration-150 focus-ring"
+      style={{
+        border: selected ? '1px solid oklch(0.87 0.185 150 / 0.55)' : '1px solid var(--cl-border-mid)',
+        background: selected ? 'oklch(0.87 0.185 150 / 0.10)' : 'var(--cl-surface-up)',
+        color: selected ? 'oklch(0.87 0.185 150)' : 'var(--cl-text-muted)',
+      }}
     >
       {children}
     </button>
   )
 }
 
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  unit,
-  onChange,
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  unit: string
-  onChange: (v: number) => void
+function Slider({ label, value, min, max, unit, onChange }: {
+  label: string; value: number; min: number; max: number; unit: string; onChange: (v: number) => void
 }) {
+  const pct = ((value - min) / (max - min)) * 100
   return (
     <div>
       <div className="flex justify-between mb-1.5">
-        <label className="text-sm font-medium text-zinc-300">{label}</label>
-        <span className="font-data text-sm font-semibold text-emerald-400">
-          {value} {unit}
-        </span>
+        <label className="text-sm font-medium" style={{ color: 'var(--cl-text-muted)' }}>{label}</label>
+        <span className="font-data text-sm font-semibold" style={{ color: 'var(--cl-green)' }}>{value} {unit}</span>
       </div>
       <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
+        type="range" min={min} max={max} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-emerald-500"
+        className="cl-range"
+        style={{ background: `linear-gradient(90deg, oklch(0.83 0.105 205), oklch(0.87 0.185 150) ${pct}%, oklch(0.3 0.016 170 / 0.55) ${pct}%)` }}
       />
     </div>
+  )
+}
+
+function RingLogo() {
+  return (
+    <img
+      src="/logo.png"
+      alt="CarbonLens"
+      width={40}
+      height={40}
+      style={{ borderRadius: 9, display: 'block', margin: '0 auto 12px' }}
+    />
   )
 }
 
@@ -84,6 +71,7 @@ export default function Onboarding() {
   const [name, setName] = useState('')
   const [goalPct, setGoalPct] = useState(10)
 
+  // Monthly preview shown to the user in the UI
   const liveTotal = calculateTotal({ transport, homeEnergy: energy, diet, purchases })
 
   const handleFinish = useCallback(() => {
@@ -92,52 +80,65 @@ export default function Onboarding() {
       createdAt: new Date().toISOString(),
       monthlyGoalReductionPct: goalPct,
     }
+    // Onboarding inputs are monthly-scale; divide by 30 so the saved log is daily-scale.
+    // extrapolateMonthly does (daily × N) / N × 30, so it correctly recovers the monthly total.
+    const dailyTransport: TransportData = {
+      ...transport,
+      carKm: +(transport.carKm / 30).toFixed(1),
+      transitKm: +(transport.transitKm / 30).toFixed(1),
+      flightHours: +(transport.flightHours / 30).toFixed(2),
+    }
+    const dailyEnergy: HomeEnergyData = {
+      ...energy,
+      electricityKwh: +(energy.electricityKwh / 30).toFixed(1),
+      gasUnits: +(energy.gasUnits / 30).toFixed(2),
+    }
+    const dailyTotal = calculateTotal({ transport: dailyTransport, homeEnergy: dailyEnergy, diet, purchases }, true)
     const log = {
       id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
-      transport,
-      homeEnergy: energy,
-      diet,
-      purchases,
-      totalKgCO2: liveTotal,
+      transport: dailyTransport,
+      homeEnergy: dailyEnergy,
+      diet, purchases,
+      totalKgCO2: dailyTotal,
     }
     saveProfile(profile)
     saveDailyLog(log)
     navigate('/dashboard')
-  }, [name, goalPct, transport, energy, diet, purchases, liveTotal, saveProfile, saveDailyLog, navigate])
+  }, [name, goalPct, transport, energy, diet, purchases, saveProfile, saveDailyLog, navigate])
+
+  const ctaStyle = { background: 'oklch(0.87 0.185 150)', color: 'oklch(0.15 0.014 168)', boxShadow: '0 8px 24px oklch(0.87 0.185 150 / 0.32)' }
+  const backStyle = { background: 'var(--cl-surface-up)', border: '1px solid var(--cl-border-mid)', color: 'var(--cl-text-muted)' }
 
   return (
-    <div className="min-h-screen flex items-start justify-center px-4 py-10 bg-[#080c0a]">
+    <div className="min-h-screen flex items-start justify-center px-4 py-10" style={{ background: 'var(--cl-base)' }}>
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-7">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 bg-gradient-to-br from-emerald-500 to-teal-600">
-            <Leaf size={20} className="text-white" />
-          </div>
-          <h1 className="font-display text-2xl font-bold text-white">CarbonLens</h1>
-          <p className="text-sm text-zinc-500 mt-1">Measure your monthly carbon footprint</p>
+          <RingLogo />
+          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--cl-text)', letterSpacing: '-0.02em' }}>CarbonLens</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--cl-text-muted)' }}>Measure your monthly carbon footprint</p>
         </div>
 
         {/* Step progress */}
         <div className="mb-5">
-          <div className="flex justify-between text-xs text-zinc-600 mb-1.5">
+          <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--cl-text-subtle)' }}>
             <span>Step {step + 1} of {STEPS.length}</span>
-            <span className="font-medium text-zinc-400">{STEPS[step]}</span>
+            <span className="font-medium" style={{ color: 'var(--cl-text-muted)' }}>{STEPS[step]}</span>
           </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }}>
             <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
-              style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${((step + 1) / STEPS.length) * 100}%`, background: 'linear-gradient(90deg, oklch(0.83 0.105 205), oklch(0.87 0.185 150))' }}
             />
           </div>
         </div>
 
         {/* Live estimate */}
         <div className="card p-4 mb-4 flex items-center justify-between">
-          <span className="text-sm text-zinc-500">Estimated monthly footprint</span>
-          <span className="font-data text-xl font-semibold text-white">
+          <span className="text-sm" style={{ color: 'var(--cl-text-muted)' }}>Estimated monthly footprint</span>
+          <span className="font-data text-xl font-semibold" style={{ color: 'var(--cl-text)' }}>
             {liveTotal.toFixed(1)}{' '}
-            <span className="text-sm font-normal text-zinc-500">kg CO₂</span>
+            <span className="text-sm font-normal" style={{ color: 'var(--cl-text-muted)' }}>kg CO₂</span>
           </span>
         </div>
 
@@ -145,7 +146,7 @@ export default function Onboarding() {
         <div className="card p-6 space-y-5">
           {step === 0 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-white">How do you get around?</h2>
+              <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--cl-text)', letterSpacing: '-0.01em' }}>How do you get around?</h2>
               <div className="space-y-2" role="radiogroup" aria-label="Car type">
                 {([
                   ['none', 'No car', Bus],
@@ -153,25 +154,22 @@ export default function Onboarding() {
                   ['petrol', 'Petrol car', Car],
                   ['diesel', 'Diesel car', Car],
                 ] as const).map(([val, label, Icon]) => (
-                  <RadioCard key={val} selected={transport.carType === val}
-                    onClick={() => setTransport({ ...transport, carType: val })}>
+                  <RadioCard key={val} selected={transport.carType === val} onClick={() => setTransport({ ...transport, carType: val })}>
                     <span className="flex items-center gap-2 font-medium">
-                      <Icon size={16} className="text-emerald-400 shrink-0" />
+                      <Icon size={16} style={{ color: 'oklch(0.87 0.185 150)' }} className="shrink-0" />
                       {label}
                     </span>
                   </RadioCard>
                 ))}
               </div>
-              <Slider label="Monthly km by car" value={transport.carKm} min={0} max={3000} unit="km"
-                onChange={(v) => setTransport({ ...transport, carKm: v })} />
-              <Slider label="Monthly transit km" value={transport.transitKm} min={0} max={2000} unit="km"
-                onChange={(v) => setTransport({ ...transport, transitKm: v })} />
+              <Slider label="Monthly km by car" value={transport.carKm} min={0} max={3000} unit="km" onChange={(v) => setTransport({ ...transport, carKm: v })} />
+              <Slider label="Monthly transit km" value={transport.transitKm} min={0} max={2000} unit="km" onChange={(v) => setTransport({ ...transport, transitKm: v })} />
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Monthly flight hours</label>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--cl-text-muted)' }}>Monthly flight hours</label>
                 <input
                   type="number" min={0} max={500} value={transport.flightHours}
                   onChange={(e) => setTransport({ ...transport, flightHours: Number(e.target.value) })}
-                  className="w-full border border-white/8 rounded-xl px-3 py-2 focus-ring outline-none text-white bg-white/[0.03] placeholder:text-zinc-600"
+                  className="w-full px-3 py-2 cl-input"
                 />
               </div>
             </>
@@ -179,21 +177,18 @@ export default function Onboarding() {
 
           {step === 1 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-white">Home energy use</h2>
-              <Slider label="Monthly electricity" value={energy.electricityKwh} min={0} max={600} unit="kWh"
-                onChange={(v) => setEnergy({ ...energy, electricityKwh: v })} />
-              <Slider label="Monthly gas" value={energy.gasUnits} min={0} max={50} unit="m³"
-                onChange={(v) => setEnergy({ ...energy, gasUnits: v })} />
+              <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--cl-text)', letterSpacing: '-0.01em' }}>Home energy use</h2>
+              <Slider label="Monthly electricity" value={energy.electricityKwh} min={0} max={600} unit="kWh" onChange={(v) => setEnergy({ ...energy, electricityKwh: v })} />
+              <Slider label="Monthly gas" value={energy.gasUnits} min={0} max={50} unit="m³" onChange={(v) => setEnergy({ ...energy, gasUnits: v })} />
               <div className="space-y-2" role="radiogroup" aria-label="Energy source">
                 {([
                   ['grid', 'City grid (DISCOM)', Zap],
                   ['mixed', 'Mixed / partial solar', Flame],
                   ['renewable', 'Fully renewable', Leaf],
                 ] as const).map(([val, label, Icon]) => (
-                  <RadioCard key={val} selected={energy.energySource === val}
-                    onClick={() => setEnergy({ ...energy, energySource: val })}>
+                  <RadioCard key={val} selected={energy.energySource === val} onClick={() => setEnergy({ ...energy, energySource: val })}>
                     <span className="flex items-center gap-2 font-medium">
-                      <Icon size={16} className="text-emerald-400 shrink-0" />
+                      <Icon size={16} style={{ color: 'oklch(0.87 0.185 150)' }} className="shrink-0" />
                       {label}
                     </span>
                   </RadioCard>
@@ -204,7 +199,7 @@ export default function Onboarding() {
 
           {step === 2 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-white">What do you eat?</h2>
+              <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--cl-text)', letterSpacing: '-0.01em' }}>What do you eat?</h2>
               <div className="space-y-2" role="radiogroup" aria-label="Diet type">
                 {([
                   ['vegan', 'Vegan', 'No animal products'],
@@ -212,32 +207,33 @@ export default function Onboarding() {
                   ['average', 'Average omnivore', 'Balanced mix of everything'],
                   ['meat-heavy', 'Meat-heavy', 'Meat at most meals'],
                 ] as const).map(([val, label, desc]) => (
-                  <RadioCard key={val} selected={diet.dietType === val}
-                    onClick={() => setDiet({ ...diet, dietType: val })}>
+                  <RadioCard key={val} selected={diet.dietType === val} onClick={() => setDiet({ ...diet, dietType: val })}>
                     <span className="flex items-center gap-2">
-                      <UtensilsCrossed size={15} className="text-emerald-400 shrink-0" />
+                      <UtensilsCrossed size={15} style={{ color: 'oklch(0.87 0.185 150)' }} className="shrink-0" />
                       <span>
                         <span className="font-medium">{label}</span>
-                        <span className="block text-xs text-zinc-600 mt-0.5">{desc}</span>
+                        <span className="block text-xs mt-0.5" style={{ color: 'var(--cl-text-subtle)' }}>{desc}</span>
                       </span>
                     </span>
                   </RadioCard>
                 ))}
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">Meals per day</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--cl-text-muted)' }}>Meals per day</label>
                 <div className="flex items-center gap-4">
-                  <button type="button"
-                    onClick={() => setDiet({ ...diet, mealCount: Math.max(1, diet.mealCount - 1) })}
-                    className="w-10 h-10 rounded-full border border-white/8 font-bold text-lg flex items-center justify-center text-zinc-400 hover:border-emerald-500/40 hover:text-zinc-200 transition-colors focus-ring"
-                    aria-label="Decrease meals">−</button>
-                  <span className="font-data text-2xl font-semibold text-white w-8 text-center">
-                    {diet.mealCount}
-                  </span>
-                  <button type="button"
-                    onClick={() => setDiet({ ...diet, mealCount: Math.min(5, diet.mealCount + 1) })}
-                    className="w-10 h-10 rounded-full border border-white/8 font-bold text-lg flex items-center justify-center text-zinc-400 hover:border-emerald-500/40 hover:text-zinc-200 transition-colors focus-ring"
-                    aria-label="Increase meals">+</button>
+                  {[
+                    { label: '−', action: () => setDiet({ ...diet, mealCount: Math.max(1, diet.mealCount - 1) }), aria: 'Decrease meals' },
+                    null,
+                    { label: '+', action: () => setDiet({ ...diet, mealCount: Math.min(5, diet.mealCount + 1) }), aria: 'Increase meals' },
+                  ].map((btn, i) => btn === null ? (
+                    <span key={i} className="font-data text-2xl font-semibold w-8 text-center" style={{ color: 'var(--cl-text)' }}>{diet.mealCount}</span>
+                  ) : (
+                    <button key={i} type="button" onClick={btn.action} aria-label={btn.aria}
+                      className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg focus-ring"
+                      style={{ background: 'var(--cl-surface-up)', border: '1px solid var(--cl-border-mid)', color: 'var(--cl-text-muted)' }}>
+                      {btn.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </>
@@ -245,23 +241,21 @@ export default function Onboarding() {
 
           {step === 3 && (
             <>
-              <h2 className="font-display text-xl font-semibold text-white">Almost there</h2>
+              <h2 className="font-display text-xl font-semibold" style={{ color: 'var(--cl-text)', letterSpacing: '-0.01em' }}>Almost there</h2>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-zinc-300 mb-1.5">
-                  Your first name
-                </label>
+                <label htmlFor="name" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--cl-text-muted)' }}>Your first name</label>
                 <input
                   id="name" type="text" value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Priya"
-                  className="w-full border border-white/8 rounded-xl px-3 py-2.5 focus-ring outline-none text-white bg-white/[0.03] placeholder:text-zinc-600"
+                  className="w-full px-3 py-2.5 cl-input"
                 />
               </div>
               <Slider label="Monthly reduction goal" value={goalPct} min={5} max={30} unit="%" onChange={setGoalPct} />
-              <p className="text-sm text-zinc-500 bg-emerald-500/8 rounded-2xl p-4 border border-emerald-500/15">
+              <p className="text-sm p-4 rounded-2xl" style={{ color: 'var(--cl-text-muted)', background: 'oklch(0.87 0.185 150 / 0.07)', border: '1px solid oklch(0.87 0.185 150 / 0.18)' }}>
                 Aiming to cut your footprint by{' '}
-                <strong className="text-emerald-400">{goalPct}%</strong> — that's{' '}
-                <strong className="text-emerald-400">
+                <strong style={{ color: 'oklch(0.87 0.185 150)' }}>{goalPct}%</strong> — that's{' '}
+                <strong style={{ color: 'oklch(0.87 0.185 150)' }}>
                   {(liveTotal * (goalPct / 100)).toFixed(1)} kg CO₂
                 </strong>{' '}
                 in savings.
@@ -272,25 +266,28 @@ export default function Onboarding() {
           <div className="flex gap-3 pt-1">
             {step > 0 && (
               <button type="button" onClick={() => setStep(step - 1)}
-                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-white/8 font-semibold text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors focus-ring">
+                className="flex items-center gap-1.5 px-4 py-3 rounded-2xl font-semibold focus-ring transition-all hover:brightness-110"
+                style={backStyle}>
                 <ArrowLeft size={15} /> Back
               </button>
             )}
             {step < STEPS.length - 1 ? (
               <button type="button" onClick={() => setStep(step + 1)}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-[#080c0a] rounded-2xl py-3 font-semibold hover:brightness-110 transition-all focus-ring">
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl py-3 font-semibold focus-ring transition-all hover:brightness-110"
+                style={ctaStyle}>
                 Continue <ArrowRight size={15} />
               </button>
             ) : (
               <button type="button" onClick={handleFinish}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-[#080c0a] rounded-2xl py-3 font-semibold hover:brightness-110 transition-all focus-ring shadow-[0_0_24px_rgba(16,185,129,0.3)]">
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl py-3 font-semibold focus-ring transition-all hover:brightness-110"
+                style={ctaStyle}>
                 See my footprint <ArrowRight size={15} />
               </button>
             )}
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-700 mt-4">
+        <p className="text-center text-xs mt-4" style={{ color: 'var(--cl-text-subtle)' }}>
           Emission factors: CEA India 2023 · IPCC · DEFRA 2023
         </p>
       </div>

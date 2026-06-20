@@ -1,15 +1,27 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from 'react'
 import type { UserProfile, FootprintLog, InsightTip } from '../types'
 import * as storage from '../lib/storage'
+import { extrapolateMonthly, calcEcoScore } from '../lib/emissions'
+import { fetchGridIntensity, type GridIntensityResult } from '../lib/gridIntensity'
 
 interface AppContextValue {
   profile: UserProfile | null
   todayLog: FootprintLog | null
   allLogs: FootprintLog[]
+  monthLogs: FootprintLog[]
+  monthlyEquivalent: number        // raw extrapolated monthly kg
+  adjustedSavingKgCO2: number      // total saving from committed + completed tips
+  netMonthlyKg: number             // monthlyEquivalent − adjustedSavingKgCO2
+  ecoScore: number                 // 0–850 derived from netMonthlyKg
+  completedSavingKgCO2: number     // saving from completed-only tips
   tips: InsightTip[]
+  gridStatus: GridIntensityResult | null
+  logSheetOpen: boolean
+  setLogSheetOpen(v: boolean): void
   saveProfile(p: UserProfile): void
   saveDailyLog(log: FootprintLog): void
   commitTip(tipId: string): void
+  completeTip(tipId: string): void
   saveInsightTips(tips: InsightTip[]): void
   clearAllData(): void
 }
@@ -22,8 +34,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(() => storage.getProfile())
   const [allLogs, setAllLogs] = useState<FootprintLog[]>(() => storage.getAllLogs())
   const [tips, setTips] = useState<InsightTip[]>(() => storage.getInsightTips())
+  const [logSheetOpen, setLogSheetOpen] = useState(false)
+  const [gridStatus, setGridStatus] = useState<GridIntensityResult | null>(null)
+
+  useEffect(() => {
+    fetchGridIntensity().then(setGridStatus)
+  }, [])
 
   const todayLog = allLogs.find((l) => l.date === todayDate()) ?? null
+
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const monthLogs = useMemo(
+    () => allLogs.filter((l) => l.date.startsWith(currentMonth)),
+    [allLogs, currentMonth]
+  )
+
+  const monthlyEquivalent = useMemo(() => extrapolateMonthly(monthLogs), [monthLogs])
+
+  // Committed OR completed tips both reduce your effective CO₂
+  const adjustedSavingKgCO2 = useMemo(
+    () => tips.filter((t) => t.committed).reduce((s, t) => s + t.estimatedSavingKgCO2, 0),
+    [tips]
+  )
+  const completedSavingKgCO2 = useMemo(
+    () => tips.filter((t) => t.completed).reduce((s, t) => s + t.estimatedSavingKgCO2, 0),
+    [tips]
+  )
+  const netMonthlyKg = useMemo(
+    () => Math.max(0, monthlyEquivalent - adjustedSavingKgCO2),
+    [monthlyEquivalent, adjustedSavingKgCO2]
+  )
+  const ecoScore = useMemo(() => calcEcoScore(netMonthlyKg), [netMonthlyKg])
 
   const saveProfile = useCallback((p: UserProfile) => {
     storage.saveProfile(p)
@@ -48,6 +89,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTips((prev) => prev.map((t) => (t.id === tipId ? { ...t, committed: true } : t)))
   }, [])
 
+  const completeTip = useCallback((tipId: string) => {
+    storage.completeTip(tipId)
+    setTips((prev) => prev.map((t) =>
+      t.id === tipId
+        ? { ...t, committed: true, completed: true, completedAt: new Date().toISOString().slice(0, 10) }
+        : t
+    ))
+  }, [])
+
   const saveInsightTips = useCallback((newTips: InsightTip[]) => {
     storage.saveInsightTips(newTips)
     setTips(newTips)
@@ -62,7 +112,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ profile, todayLog, allLogs, tips, saveProfile, saveDailyLog, commitTip, saveInsightTips, clearAllData }}
+      value={{
+        profile, todayLog, allLogs, monthLogs,
+        monthlyEquivalent, adjustedSavingKgCO2, netMonthlyKg, ecoScore,
+        completedSavingKgCO2, tips, gridStatus,
+        logSheetOpen, setLogSheetOpen,
+        saveProfile, saveDailyLog, commitTip, completeTip, saveInsightTips, clearAllData,
+      }}
     >
       {children}
     </AppContext.Provider>

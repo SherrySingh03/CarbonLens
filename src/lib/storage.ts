@@ -58,6 +58,15 @@ export function commitTip(tipId: string): void {
   write(KEYS.TIPS, tips)
 }
 
+export function completeTip(tipId: string): void {
+  const tips = getInsightTips().map((t) =>
+    t.id === tipId
+      ? { ...t, committed: true, completed: true, completedAt: new Date().toISOString().slice(0, 10) }
+      : t
+  )
+  write(KEYS.TIPS, tips)
+}
+
 export function clearAllData(): void {
   Object.values(KEYS).forEach((k) => localStorage.removeItem(k))
 }

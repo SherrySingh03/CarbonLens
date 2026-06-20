@@ -45,5 +45,7 @@ export interface InsightTip {
   description: string
   estimatedSavingKgCO2: number
   difficulty: 'easy' | 'medium' | 'hard'
-  committed: boolean
+  committed: boolean   // "will try"
+  completed?: boolean  // actually done
+  completedAt?: string // ISO date
 }

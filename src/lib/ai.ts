@@ -3,6 +3,13 @@ import { fetchGridIntensity } from './gridIntensity'
 import { getCategoryBreakdown } from './emissions'
 
 const CACHE_KEY = 'cl_tips_cache'
+const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
+
+interface TipsCache {
+  savedHash: string
+  tips: InsightTip[]
+  savedAt: number
+}
 
 function hashLog(log: FootprintLog): string {
   const breakdown = getCategoryBreakdown(log)
@@ -14,49 +21,55 @@ function getCached(hash: string): InsightTip[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return null
-    const { savedHash, tips } = JSON.parse(raw) as { savedHash: string; tips: InsightTip[] }
-    return savedHash === hash ? tips : null
+    const { savedHash, tips, savedAt } = JSON.parse(raw) as TipsCache
+    if (savedHash !== hash) return null
+    if (Date.now() - savedAt > CACHE_TTL_MS) return null
+    return tips
   } catch {
     return null
   }
 }
 
 function setCached(hash: string, tips: InsightTip[]): void {
-  localStorage.setItem(CACHE_KEY, JSON.stringify({ savedHash: hash, tips }))
+  const entry: TipsCache = { savedHash: hash, tips, savedAt: Date.now() }
+  localStorage.setItem(CACHE_KEY, JSON.stringify(entry))
 }
 
-function hasChangedSignificantly(newHash: string): boolean {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY)
-    if (!raw) return true
-    const { savedHash } = JSON.parse(raw) as { savedHash: string }
-    const oldTotal = parseFloat(savedHash.split('_')[0])
-    const newTotal = parseFloat(newHash.split('_')[0])
-    if (!oldTotal) return true
-    return Math.abs(newTotal - oldTotal) / oldTotal > 0.05
-  } catch {
-    return true
-  }
+function isValidTip(t: unknown): t is InsightTip {
+  if (!t || typeof t !== 'object') return false
+  const tip = t as Record<string, unknown>
+  return (
+    typeof tip.id === 'string' &&
+    typeof tip.category === 'string' &&
+    typeof tip.title === 'string' &&
+    typeof tip.description === 'string' &&
+    typeof tip.estimatedSavingKgCO2 === 'number' &&
+    typeof tip.difficulty === 'string'
+  )
 }
 
 export async function fetchInsights(
   log: FootprintLog,
   profile: UserProfile,
-  committedTipIds: string[]
+  excludedTipIds: string[]
 ): Promise<InsightTip[]> {
-  const gridFactor = await fetchGridIntensity()
   const hash = hashLog(log)
   const cached = getCached(hash)
-  if (cached && !hasChangedSignificantly(hash)) return cached
+  if (cached) return cached
+
+  const grid = await fetchGridIntensity()
 
   const res = await fetch('/api/insights', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ footprintLog: { ...log, gridFactor }, profile, committedTipIds }),
+    body: JSON.stringify({ footprintLog: { ...log, gridFactor: grid.kgPerKwh }, profile, committedTipIds: excludedTipIds }),
   })
 
   if (!res.ok) throw new Error(`Insights fetch failed: ${res.status}`)
-  const tips = await res.json() as InsightTip[]
-  setCached(hash, tips)
-  return tips
+  const raw: unknown = await res.json()
+  if (!Array.isArray(raw) || !raw.every(isValidTip)) {
+    throw new Error('AI returned unexpected response shape')
+  }
+  setCached(hash, raw)
+  return raw
 }

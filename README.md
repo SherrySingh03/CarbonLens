@@ -8,9 +8,9 @@
 
 | Verb | Feature |
 |---|---|
-| **Understand** | Visual ScoreRing gauge with colour-coded impact (green / amber / red) and comparison against India and global averages |
+| **Understand** | Eco Score ring (0–850) with colour-coded grade and India/global average comparison; tap-to-explain category bars; tangible equivalences card |
 | **Track** | Daily FootprintLog persistence in localStorage, 12-week heatmap calendar, 30-day trend chart |
-| **Reduce** | AI-generated, ranked, actionable tips via Claude API — sorted by estimated kg CO₂ saved, with commit tracking |
+| **Reduce** | AI-generated, ranked, actionable tips via Gemini API — sorted by estimated kg CO₂ saved; committing a tip immediately deducts its saving from your Eco Score |
 
 ---
 
@@ -25,11 +25,11 @@ npm install
 # 2. Configure environment
 cp .env.example .env
 # Add your keys to .env:
-#   ANTHROPIC_API_KEY=sk-ant-...
-#   VITE_ELECTRICITY_MAPS_KEY=...  (optional — falls back to CEA 2023 constant)
+#   GEMINI_API_KEY=...
+#   ELECTRICITY_MAPS_KEY=...  (optional — falls back to CEA 2023 constant)
 
 # 3. Run locally with Vercel dev (required for the AI Edge Function)
-npx vercel dev
+npm run dev:full
 ```
 
 Open http://localhost:3000.
@@ -43,7 +43,7 @@ Open http://localhost:3000.
 vercel --prod
 ```
 
-The `ANTHROPIC_API_KEY` must be set as a Vercel environment variable — it is never bundled into the frontend.
+The `GEMINI_API_KEY` must be set as a Vercel environment variable — it is never bundled into the frontend.
 
 ---
 
@@ -58,16 +58,41 @@ Quick Log sheet  →   (pure calculations)   →   CategoryBars)
 Daily log data   →   AppContext             →   Progress (heatmap,
                      (in-memory + LS sync)      trend chart, goal card)
 
-FootprintLog     →   api/insights.js        →   Insights (AI tips feed,
+FootprintLog     →   api/insights.js        →   Actions (AI tips feed,
 + Profile        →   (Vercel Edge Fn)   →       commit tracking)
-                     Anthropic Claude API
+                     Google Gemini API
 ```
 
 **Key invariants:**
 - Pages read state only from `useApp()` hook — never directly from localStorage
 - `lib/emissions.ts` is pure functions — no React, no side effects
-- `ANTHROPIC_API_KEY` exists only in the Edge Function environment
-- AI tips are cached by footprint hash; Edge Function called only on >5% data change or manual refresh
+- `GEMINI_API_KEY` exists only in the Edge Function environment
+- AI tips are cached by footprint hash with a 1-hour TTL; Edge Function called only on data change or manual refresh
+
+---
+
+## Eco Score
+
+CarbonLens uses a custom **Eco Score** (0–850) instead of raw kg to make progress legible:
+
+```
+Score = 850 × (1 − net CO₂ / 350 kg)
+```
+
+- **Net CO₂** = monthly log estimate − savings from all committed & completed actions
+- **350 kg ceiling** — zero-score baseline (just above global average of 375 kg/mo)
+- **0 kg → 850** (Exceptional), **125 kg → 547** (Good, at India avg), **350 kg → 0** (Critical)
+
+Committing to a tip in the Actions tab immediately raises your score. Completing it confirms you did it.
+
+| Grade | Score |
+|---|---|
+| Exceptional | 750+ |
+| Very Good | 600–749 |
+| Good | 450–599 |
+| Fair | 300–449 |
+| Poor | 150–299 |
+| Critical | 0–149 |
 
 ---
 
@@ -112,4 +137,4 @@ Live grid intensity for zone IN-SO sourced from [Electricity Maps](https://www.e
 
 ## Tech Stack
 
-React 18 · Vite · TypeScript · Tailwind CSS v3 · React Router v6 · Recharts · Vitest · Vercel Edge Functions · Anthropic Claude (claude-sonnet-4-6)
+React 18 · Vite · TypeScript · Tailwind CSS v3 · React Router v6 · Recharts · Vitest · Vercel Edge Functions · Google Gemini (gemini-3.5-flash)

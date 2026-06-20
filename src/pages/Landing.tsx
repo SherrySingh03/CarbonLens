@@ -1,13 +1,29 @@
 import { useRef, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  motion, useScroll, useTransform, useSpring, useInView, animate,
+  motion, useScroll, useSpring, useInView, animate,
 } from 'framer-motion'
 import {
-  ArrowRight, Leaf, LayoutDashboard, Zap, TrendingDown,
+  ArrowRight, LayoutDashboard, Zap, TrendingDown,
   UtensilsCrossed, Car, CheckCircle2, Globe,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
+import BenchmarkRail from '../components/BenchmarkRail'
+import EquivalencesCard from '../components/EquivalencesCard'
+
+// ─── logo ───────────────────────────────────────────────────────────────────────
+
+function RingLogo({ size = 26 }: { size?: number }) {
+  return (
+    <img
+      src="/logo.png"
+      alt="CarbonLens"
+      width={size}
+      height={size}
+      style={{ borderRadius: Math.round(size * 0.22), display: 'block', flexShrink: 0 }}
+    />
+  )
+}
 
 // ─── scroll progress ───────────────────────────────────────────────────────────
 
@@ -16,8 +32,8 @@ function ScrollProgress() {
   const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 })
   return (
     <motion.div
-      style={{ scaleX }}
-      className="fixed top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-lime-400 origin-left z-50 pointer-events-none"
+      style={{ scaleX, background: 'linear-gradient(90deg, oklch(0.83 0.105 205), oklch(0.87 0.185 150), oklch(0.85 0.14 90))' }}
+      className="fixed top-0 left-0 right-0 h-[2px] origin-left z-50 pointer-events-none"
     />
   )
 }
@@ -88,15 +104,15 @@ const FACTS = [
 function Ticker() {
   const doubled = [...FACTS, ...FACTS]
   return (
-    <div className="overflow-hidden border-y border-white/[0.04]" style={{ background: 'rgba(16,185,129,0.03)' }}>
+    <div className="overflow-hidden" style={{ borderTop: '1px solid oklch(0.5 0.02 170 / 0.1)', borderBottom: '1px solid oklch(0.5 0.02 170 / 0.1)', background: 'oklch(0.87 0.185 150 / 0.03)' }}>
       <div
         className="flex gap-10 py-3 whitespace-nowrap"
         style={{ animation: 'ticker 36s linear infinite' }}
         aria-hidden="true"
       >
         {doubled.map((f, i) => (
-          <span key={i} className="text-xs text-zinc-600 shrink-0 flex items-center gap-3">
-            <span className="w-1 h-1 rounded-full bg-emerald-500/50 shrink-0" />
+          <span key={i} className="text-xs shrink-0 flex items-center gap-3" style={{ color: 'var(--cl-text-subtle)' }}>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'oklch(0.87 0.185 150 / 0.5)', display: 'inline-block', flexShrink: 0 }} />
             {f}
           </span>
         ))}
@@ -105,140 +121,115 @@ function Ticker() {
   )
 }
 
-// ─── hero: app preview card ────────────────────────────────────────────────────
+// ─── hero gauge (animated ring for landing) ───────────────────────────────────
 
-const HERO_ROWS = [
-  { label: 'Transport', pct: 45, kg: 62, c: 'from-emerald-500 to-teal-500' },
-  { label: 'Energy',    pct: 30, kg: 41, c: 'from-teal-500 to-cyan-500' },
-  { label: 'Diet',      pct: 20, kg: 28, c: 'from-lime-500 to-green-500' },
-] as const
+function HeroGauge() {
+  const R = 96
+  const CIRC = 2 * Math.PI * R
+  const offset = CIRC * (1 - 0.72)
 
-const R2 = 84, CIRC2 = 2 * Math.PI * R2
-
-function AppPreviewCard() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 28, scale: 0.94 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 1.2, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-72 shrink-0"
-    >
-      <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-br from-emerald-500/40 via-teal-500/15 to-transparent" />
-      <div className="relative rounded-3xl p-6" style={{ background: '#0c1410', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center justify-between mb-5">
-          <span className="text-[10px] font-data text-zinc-600 uppercase tracking-widest">Monthly score</span>
-          <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/15 px-2 py-0.5 rounded-full">Above avg</span>
+    <div style={{ position: 'relative', width: 280, height: 280, display: 'grid', placeItems: 'center' }}>
+      <div style={{
+        position: 'absolute', inset: 24, borderRadius: '50%',
+        background: 'radial-gradient(circle, oklch(0.87 0.185 150 / 0.16), transparent 70%)',
+        animation: 'cl-pulse 6s ease-in-out infinite',
+      }} />
+      <svg width="280" height="280" viewBox="0 0 280 280" style={{ transform: 'rotate(-90deg)' }}>
+        <defs>
+          <linearGradient id="hero-gauge-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="oklch(0.83 0.105 205)" />
+            <stop offset="55%" stopColor="oklch(0.87 0.185 150)" />
+            <stop offset="100%" stopColor="oklch(0.85 0.14 90)" />
+          </linearGradient>
+          <filter id="hero-glow">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
+            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+        <circle cx="140" cy="140" r={R} fill="none" stroke="oklch(0.3 0.016 170 / 0.5)" strokeWidth="14" />
+        <motion.circle
+          cx="140" cy="140" r={R}
+          fill="none"
+          stroke="url(#hero-gauge-grad)"
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeDasharray={CIRC}
+          initial={{ strokeDashoffset: CIRC }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          style={{ filter: 'url(#hero-glow) drop-shadow(0 0 10px oklch(0.87 0.185 150 / 0.5))' }}
+        />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'oklch(0.72 0.018 165)' }}>
+          Eco score
         </div>
-
-        {/* ring */}
-        <div className="flex justify-center mb-5">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-emerald-500/10 blur-2xl" />
-            <svg width={188} height={188} viewBox="0 0 188 188" aria-hidden="true">
-              <defs>
-                <linearGradient id="hg" x1="0" y1="0" x2="188" y2="188" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#10b981" />
-                  <stop offset="55%" stopColor="#2dd4bf" />
-                  <stop offset="100%" stopColor="#a3e635" />
-                </linearGradient>
-                <filter id="hglow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b" />
-                  <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-              </defs>
-              <circle cx={94} cy={94} r={R2} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={10} />
-              <motion.circle
-                cx={94} cy={94} r={R2} fill="none" stroke="url(#hg)" strokeWidth={10} strokeLinecap="round"
-                strokeDasharray={CIRC2}
-                initial={{ strokeDashoffset: CIRC2 }}
-                animate={{ strokeDashoffset: CIRC2 * (1 - 138 / 500) }}
-                transition={{ duration: 2.0, delay: 0.9, ease: [0.16, 1, 0.3, 1] }}
-                style={{ transform: 'rotate(-90deg)', transformOrigin: '94px 94px', filter: 'url(#hglow)' }}
-              />
-              <text x="94" y="88" textAnchor="middle" dominantBaseline="middle" fill="white" fontSize="36" fontWeight="800" fontFamily="Bricolage Grotesque, system-ui">138</text>
-              <text x="94" y="108" textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.35)" fontSize="9" fontFamily="JetBrains Mono, monospace">kg CO₂ / month</text>
-              <rect x="55" y="128" width="78" height="16" rx="8" fill="rgba(251,191,36,0.1)" />
-              <text x="94" y="136" textAnchor="middle" dominantBaseline="middle" fill="#fbbf24" fontSize="8.5" fontWeight="600" fontFamily="system-ui">Above India avg</text>
-            </svg>
-          </div>
-        </div>
-
-        {/* bars */}
-        <div className="space-y-2.5">
-          {HERO_ROWS.map(({ label, pct, kg, c }, i) => (
-            <div key={label}>
-              <div className="flex justify-between mb-1">
-                <span className="text-[10px] text-zinc-600">{label}</span>
-                <span className="font-data text-[10px] font-semibold text-white">{kg} kg</span>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                <motion.div
-                  className={`h-full rounded-full bg-gradient-to-r ${c}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${pct}%` }}
-                  transition={{ duration: 1.0, delay: 1.3 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          transition={{ delay: 2.0 }}
-          className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between"
+          transition={{ duration: 0.5, delay: 0.8 }}
+          style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 64, fontWeight: 600, lineHeight: 1, letterSpacing: '-0.03em', color: 'oklch(0.97 0.01 160)' }}
         >
-          <span className="font-data text-sm font-bold gradient-text">138 kg total</span>
-          <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-            View AI tips <ArrowRight size={9} />
-          </span>
+          <Num to={370} />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 1.4 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, padding: '4px 11px', borderRadius: 999, background: 'oklch(0.84 0.16 152 / 0.14)', border: '1px solid oklch(0.84 0.16 152 / 0.3)' }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'oklch(0.84 0.16 152)' }}>↓ trending down</span>
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-// ─── feature visuals ───────────────────────────────────────────────────────────
+// ─── feature visuals (kept from original) ────────────────────────────────────
 
 function MiniLogUI() {
   const rows = [
-    { label: 'Car km / month', val: 12, max: 100, c: 'from-blue-500 to-cyan-500' },
-    { label: 'Electricity kWh', val: 45, max: 100, c: 'from-orange-500 to-amber-500' },
+    { label: 'Car km / month', val: 12, max: 100, teal: true },
+    { label: 'Electricity kWh', val: 45, max: 100, teal: false },
   ]
   const diets = ['Vegan', 'Veg', 'Mixed', 'Meat']
   return (
-    <div className="rounded-2xl p-5 border border-white/[0.06]" style={{ background: '#0c1410' }}>
-      <p className="text-[10px] font-data text-zinc-600 uppercase tracking-widest mb-4">Today's quick log</p>
-      {rows.map(({ label, val, max, c }, i) => (
-        <div key={label} className="mb-3.5">
-          <div className="flex justify-between mb-1">
-            <span className="text-xs text-zinc-500">{label}</span>
-            <span className="font-data text-xs text-zinc-300">{val}</span>
+    <div className="rounded-2xl p-5" style={{ background: 'var(--cl-surface)', border: '1px solid var(--cl-border)' }}>
+      <p className="text-[10px] font-data uppercase tracking-widest mb-4" style={{ color: 'var(--cl-text-subtle)' }}>Today's quick log</p>
+      {rows.map(({ label, val, max, teal }, i) => {
+        const pct = (val / max) * 100
+        return (
+          <div key={label} className="mb-3.5">
+            <div className="flex justify-between mb-1">
+              <span className="text-xs" style={{ color: 'var(--cl-text-subtle)' }}>{label}</span>
+              <span className="font-data text-xs" style={{ color: 'var(--cl-text-muted)' }}>{val}</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }}>
+              <motion.div
+                style={{ height: '100%', borderRadius: 999, background: teal ? 'linear-gradient(90deg, oklch(0.83 0.105 205), oklch(0.87 0.185 150))' : 'linear-gradient(90deg, oklch(0.85 0.14 90), oklch(0.87 0.185 150))' }}
+                initial={{ width: 0 }}
+                whileInView={{ width: `${pct}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.9, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </div>
           </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <motion.div
-              className={`h-full rounded-full bg-gradient-to-r ${c}`}
-              initial={{ width: 0 }}
-              whileInView={{ width: `${(val / max) * 100}%` }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.9, delay: i * 0.15, ease: [0.16, 1, 0.3, 1] }}
-            />
-          </div>
-        </div>
-      ))}
-      <div className="mt-4 pt-3 border-t border-white/5">
-        <p className="text-[10px] text-zinc-600 mb-2">Diet</p>
+        )
+      })}
+      <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--cl-border)' }}>
+        <p className="text-[10px] mb-2" style={{ color: 'var(--cl-text-subtle)' }}>Diet</p>
         <div className="flex gap-2">
           {diets.map((d, i) => (
-            <span key={d} className={`text-[10px] px-2.5 py-1 rounded-lg border ${i === 1 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400' : 'border-white/[0.06] text-zinc-700'}`}>
-              {d}
-            </span>
+            <span key={d} className="text-[10px] px-2.5 py-1 rounded-lg" style={{
+              border: i === 1 ? '1px solid oklch(0.87 0.185 150 / 0.4)' : '1px solid var(--cl-border)',
+              background: i === 1 ? 'oklch(0.87 0.185 150 / 0.1)' : 'transparent',
+              color: i === 1 ? 'oklch(0.87 0.185 150)' : 'var(--cl-text-subtle)',
+            }}>{d}</span>
           ))}
         </div>
       </div>
-      <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center">
-        <span className="text-xs text-zinc-600">Live total</span>
-        <span className="font-data text-sm font-bold gradient-text">24.8 kg CO₂</span>
+      <div className="mt-4 pt-3 flex justify-between items-center" style={{ borderTop: '1px solid var(--cl-border)' }}>
+        <span className="text-xs" style={{ color: 'var(--cl-text-subtle)' }}>Live total</span>
+        <span className="font-data text-sm font-bold" style={{ color: 'oklch(0.87 0.185 150)' }}>24.8 kg CO₂</span>
       </div>
     </div>
   )
@@ -246,13 +237,13 @@ function MiniLogUI() {
 
 function ComparisonBars() {
   const bars = [
-    { label: 'You', kg: 138, pct: 37, c: 'from-teal-500 to-emerald-400', glow: true },
-    { label: 'India average', kg: 125, pct: 33, c: 'from-emerald-600 to-green-500', glow: false },
-    { label: 'Global average', kg: 375, pct: 100, c: 'from-rose-600 to-orange-500', glow: false },
+    { label: 'You', kg: 138, pct: 37, grad: 'linear-gradient(90deg, oklch(0.83 0.105 205), oklch(0.87 0.185 150))', glow: true },
+    { label: 'India average', kg: 125, pct: 33, grad: 'linear-gradient(90deg, oklch(0.84 0.16 152), oklch(0.87 0.185 150))', glow: false },
+    { label: 'Global average', kg: 375, pct: 100, grad: 'linear-gradient(90deg, oklch(0.85 0.14 90), oklch(0.70 0.18 33))', glow: false },
   ]
   return (
     <div className="space-y-6">
-      {bars.map(({ label, kg, pct, c, glow }, i) => (
+      {bars.map(({ label, kg, pct, grad, glow }, i) => (
         <motion.div
           key={label}
           initial={{ opacity: 0, x: -24 }}
@@ -261,13 +252,12 @@ function ComparisonBars() {
           transition={{ delay: i * 0.12, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <div className="flex justify-between mb-2">
-            <span className={`text-sm font-medium ${glow ? 'text-white' : 'text-zinc-500'}`}>{label}</span>
-            <span className={`font-data text-sm font-bold ${glow ? 'gradient-text' : 'text-zinc-600'}`}>{kg} kg/mo</span>
+            <span className="text-sm font-medium" style={{ color: glow ? 'var(--cl-text)' : 'var(--cl-text-subtle)' }}>{label}</span>
+            <span className="font-data text-sm font-bold" style={{ color: glow ? 'oklch(0.87 0.185 150)' : 'var(--cl-text-subtle)' }}>{kg} kg/mo</span>
           </div>
-          <div className="h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <div className="h-3 rounded-full overflow-hidden" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }}>
             <motion.div
-              className={`h-full rounded-full bg-gradient-to-r ${c}`}
-              style={glow ? { boxShadow: '0 0 10px rgba(16,185,129,0.4)' } : {}}
+              style={{ height: '100%', borderRadius: 999, background: grad, boxShadow: glow ? '0 0 10px oklch(0.87 0.185 150 / 0.4)' : 'none' }}
               initial={{ width: 0 }}
               whileInView={{ width: `${pct}%` }}
               viewport={{ once: true }}
@@ -289,42 +279,60 @@ const AI_TIPS = [
 ] as const
 
 const STEPS = [
-  { n: '01', Icon: UtensilsCrossed, c: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', title: 'Answer four questions', desc: 'Transport, energy, diet, purchases — pre-filled with India averages. Only update what differs. Five minutes.' },
-  { n: '02', Icon: TrendingDown,    c: 'text-teal-400',    bg: 'bg-teal-500/10 border-teal-500/20',    title: 'See your exact score',   desc: 'Calculated instantly using CEA India 2023 grid data and IPCC factors. Your number, not an estimate.' },
-  { n: '03', Icon: Zap,             c: 'text-lime-400',    bg: 'bg-lime-500/10 border-lime-500/20',    title: 'Get ranked actions',     desc: 'Claude AI ranks six specific cuts by kg saved, personalised to your data — not generic advice.' },
+  { n: '01', Icon: UtensilsCrossed, title: 'Answer four questions', desc: 'Transport, energy, diet, purchases — pre-filled with India averages. Only update what differs. Five minutes.', color: 'oklch(0.87 0.185 150)', bg: 'oklch(0.87 0.185 150 / 0.1)', border: 'oklch(0.87 0.185 150 / 0.2)' },
+  { n: '02', Icon: TrendingDown,    title: 'See your exact score',   desc: 'Calculated instantly using CEA India 2023 grid data and IPCC factors. Your number, not an estimate.', color: 'oklch(0.83 0.105 205)', bg: 'oklch(0.83 0.105 205 / 0.1)', border: 'oklch(0.83 0.105 205 / 0.2)' },
+  { n: '03', Icon: Zap,             title: 'Get ranked actions',     desc: 'Claude AI ranks six specific cuts by kg saved, personalised to your data — not generic advice.', color: 'oklch(0.85 0.14 90)', bg: 'oklch(0.85 0.14 90 / 0.1)', border: 'oklch(0.85 0.14 90 / 0.2)' },
 ] as const
 
 export default function Landing() {
   const { profile } = useApp()
   const hasProfile = Boolean(profile)
   const { scrollY } = useScroll()
-  const ringY = useTransform(scrollY, [0, 700], [0, -60])
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => scrollY.on('change', (v) => setScrolled(v > 60)), [scrollY])
 
   const ctaProps = hasProfile
     ? { to: '/dashboard', label: 'Go to your dashboard', Icon: LayoutDashboard }
-    : { to: '/onboarding', label: 'Measure your footprint', Icon: ArrowRight }
+    : { to: '/onboarding', label: 'Start your footprint', Icon: ArrowRight }
 
   return (
-    <div className="min-h-screen bg-[#080c0a] text-white overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--cl-base)', color: 'var(--cl-text)' }}>
+
+      {/* Ambient blobs — behind everything */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }} aria-hidden="true">
+        <div style={{ position: 'absolute', top: '-10%', left: '8%', width: 620, height: 620, borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.87 0.185 150 / 0.12), transparent 68%)', filter: 'blur(40px)', animation: 'cl-drift 18s ease-in-out infinite, cl-pulse 9s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', top: '30%', right: '-6%', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.83 0.105 205 / 0.10), transparent 68%)', filter: 'blur(44px)', animation: 'cl-drift2 22s ease-in-out infinite, cl-pulse 11s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', bottom: '-8%', left: '36%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.84 0.16 152 / 0.08), transparent 70%)', filter: 'blur(46px)', animation: 'cl-drift 26s ease-in-out infinite' }} />
+      </div>
+
       <ScrollProgress />
 
       {/* ── nav ── */}
-      <header className={`sticky top-0 z-30 transition-all duration-300 ${scrolled ? 'bg-[#080c0a]/92 backdrop-blur-md border-b border-white/5' : 'bg-transparent'}`}>
-        <div className="w-full px-6 lg:px-16 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Leaf size={13} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-sm tracking-tight">CarbonLens</span>
+      <header
+        className="sticky top-0 z-30 transition-all duration-300"
+        style={{
+          backdropFilter: scrolled ? 'blur(16px)' : undefined,
+          background: scrolled ? 'oklch(0.15 0.014 168 / 0.88)' : 'transparent',
+          borderBottom: scrolled ? '1px solid oklch(0.5 0.02 170 / 0.12)' : '1px solid transparent',
+        }}
+      >
+        <div className="relative z-10 w-full px-6 lg:px-16 h-[60px] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <RingLogo size={26} />
+            <span className="font-display font-semibold" style={{ fontSize: 18, letterSpacing: '-0.02em', color: 'var(--cl-text)' }}>CarbonLens</span>
           </div>
           {hasProfile ? (
-            <Link to="/dashboard" className="flex items-center gap-1.5 text-sm font-semibold bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl transition-colors focus-ring">
+            <Link to="/dashboard"
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl focus-ring transition-all"
+              style={{ background: 'var(--cl-surface-up)', border: '1px solid var(--cl-border-mid)', color: 'var(--cl-text-muted)' }}
+            >
               <LayoutDashboard size={13} /> Dashboard
             </Link>
           ) : (
-            <Link to="/onboarding" className="flex items-center gap-1.5 text-sm font-semibold text-[#080c0a] bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 px-4 py-2 rounded-xl transition-all focus-ring glow-emerald">
+            <Link to="/onboarding"
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl focus-ring transition-all hover:brightness-110"
+              style={{ background: 'oklch(0.87 0.185 150)', color: 'oklch(0.15 0.014 168)', boxShadow: '0 4px 14px oklch(0.87 0.185 150 / 0.3)' }}
+            >
               Get started <ArrowRight size={13} />
             </Link>
           )}
@@ -332,105 +340,133 @@ export default function Landing() {
       </header>
 
       {/* ── hero ── */}
-      <section className="relative min-h-[calc(100vh-56px)] flex items-center overflow-hidden">
-        {/* grid */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.022]"
-          style={{ backgroundImage: 'linear-gradient(white 1px,transparent 1px),linear-gradient(90deg,white 1px,transparent 1px)', backgroundSize: '72px 72px' }} />
-        {/* blooms */}
-        <div className="absolute top-[-80px] right-0 w-[700px] h-[700px] rounded-full bg-emerald-500/5 blur-[140px] pointer-events-none" style={{ animation: 'pulse-glow 6s ease-in-out infinite' }} />
-        <div className="absolute bottom-[-60px] left-[-80px] w-[500px] h-[500px] rounded-full bg-teal-500/5 blur-[120px] pointer-events-none" style={{ animation: 'pulse-glow 8s ease-in-out infinite reverse' }} />
+      <section className="relative z-10 w-full px-4 md:px-6 lg:px-16 pt-12 pb-8">
+        {/* Design-language hero card */}
+        <div style={{
+          position: 'relative', borderRadius: 24, overflow: 'hidden',
+          border: '1px solid oklch(0.5 0.02 170 / 0.14)',
+          background: 'linear-gradient(165deg, oklch(0.19 0.016 170), oklch(0.155 0.014 168))',
+        }}>
+          {/* top-right ambient blob inside card */}
+          <div style={{ position: 'absolute', top: '-30%', right: '-10%', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.87 0.185 150 / 0.22), transparent 66%)', filter: 'blur(30px)', animation: 'cl-pulse 8s ease-in-out infinite', pointerEvents: 'none' }} />
 
-        <div className="relative w-full px-6 lg:px-16 py-20 flex flex-col md:flex-row gap-12 lg:gap-20 items-center justify-between">
-          {/* text */}
-          <div className="max-w-2xl">
-            <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 mb-7">
-              <Leaf size={10} /> Built for India · Powered by Claude AI
-            </motion.p>
+          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)', gap: 40, alignItems: 'center', padding: 'clamp(28px, 5vw, 64px)' }} className="max-md:grid-cols-1">
+            {/* Left: text */}
+            <div>
+              {/* Pill badge */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 13px', borderRadius: 999, background: 'oklch(0.235 0.018 172 / 0.7)', border: '1px solid oklch(0.5 0.02 170 / 0.18)', marginBottom: 22 }}
+              >
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, letterSpacing: '0.06em', color: 'oklch(0.84 0.16 152)' }}>●</span>
+                <span style={{ fontSize: 13, color: 'var(--cl-text-muted)' }}>
+                  {hasProfile ? `Welcome back, ${profile!.name}` : 'Built for India · Powered by Claude AI'}
+                </span>
+              </motion.div>
 
-            <div className="font-display text-[60px] md:text-[76px] lg:text-[88px] font-extrabold leading-[1.0] tracking-tight mb-6">
-              {'Carbon is invisible'.split(' ').map((word, i) => (
-                <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.18 + i * 0.08, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                  className="inline-block mr-[0.22em]">
-                  {word}
-                </motion.span>
-              ))}
-              <br />
-              {'until you measure it.'.split(' ').map((word, i) => (
-                <motion.span key={i} initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.08, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                  className="inline-block mr-[0.22em] gradient-text">
-                  {word}
-                </motion.span>
-              ))}
+              {/* Headline */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="font-display font-semibold"
+                style={{ fontSize: 'clamp(30px, 5vw, 52px)', lineHeight: 1.04, letterSpacing: '-0.03em', marginBottom: 18, color: 'var(--cl-text)' }}
+              >
+                See your carbon.{' '}
+                <span style={{ background: 'linear-gradient(100deg, oklch(0.87 0.185 150), oklch(0.83 0.105 205))', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  Then bend it down.
+                </span>
+              </motion.h1>
+
+              {/* Description */}
+              <motion.p
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.35 }}
+                style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--cl-text-muted)', maxWidth: '46ch', marginBottom: 28 }}
+              >
+                Log a week in two minutes. CarbonLens turns transport, energy, diet and spending into one clear score — and an AI that tells you the three changes that actually move it.
+              </motion.p>
+
+              {/* CTAs */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.48 }}
+                style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 32 }}
+              >
+                <Link
+                  to={ctaProps.to}
+                  className="focus-ring transition-all hover:brightness-110"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: 'oklch(0.18 0.02 160)', background: 'oklch(0.87 0.185 150)', padding: '14px 24px', borderRadius: 12, boxShadow: '0 8px 28px oklch(0.87 0.185 150 / 0.32)', textDecoration: 'none' }}
+                >
+                  <ctaProps.Icon size={16} /> {ctaProps.label}
+                </Link>
+                <Link
+                  to="/onboarding"
+                  className="focus-ring transition-all"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: 'var(--cl-text)', background: 'oklch(0.5 0.02 170 / 0.08)', border: '1px solid oklch(0.5 0.02 170 / 0.22)', padding: '14px 22px', borderRadius: 12, textDecoration: 'none' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'oklch(0.5 0.02 170 / 0.16)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'oklch(0.5 0.02 170 / 0.08)')}
+                >
+                  See how it works
+                </Link>
+              </motion.div>
             </div>
 
-            <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.9 }}
-              className="text-lg text-zinc-400 leading-relaxed mb-9 max-w-lg">
-              CarbonLens calculates your monthly CO₂ across transport, energy, food, and purchases
-              — using real India grid data and IPCC factors — then gives you a ranked AI plan to cut it.
-            </motion.p>
-
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1.0 }}
-              className="flex items-center gap-4">
-              <Link to={ctaProps.to}
-                className="inline-flex items-center gap-2 font-semibold text-[#080c0a] bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 transition-all px-7 py-3.5 rounded-2xl focus-ring shadow-[0_0_32px_rgba(16,185,129,0.3)]">
-                <ctaProps.Icon size={16} /> {ctaProps.label}
-              </Link>
-            </motion.div>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-              className="text-xs text-zinc-700 mt-4">
-              {hasProfile ? `Welcome back, ${profile!.name}` : 'Free · No account required · 5 minutes'}
-            </motion.p>
+            {/* Right: animated gauge */}
+            <div className="hidden md:grid" style={{ placeItems: 'center' }}>
+              <HeroGauge />
+            </div>
           </div>
-
-          {/* right — app preview */}
-          <motion.div style={{ y: ringY }} className="hidden lg:flex justify-end shrink-0">
-            <AppPreviewCard />
-          </motion.div>
         </div>
       </section>
 
       {/* ── ticker ── */}
-      <Ticker />
+      <div className="relative z-10">
+        <Ticker />
+      </div>
 
       {/* ── stats ── */}
-      <section className="border-b border-white/[0.04]" style={{ background: 'rgba(255,255,255,0.015)' }}>
-        <div className="w-full px-6 lg:px-16 py-14 grid grid-cols-3 divide-x divide-white/[0.04]">
+      <section className="relative z-10" style={{ borderBottom: '1px solid oklch(0.5 0.02 170 / 0.1)', background: 'oklch(0.87 0.185 150 / 0.02)' }}>
+        <div className="w-full px-6 lg:px-16 py-14 grid grid-cols-3 divide-x" style={{ borderColor: 'oklch(0.5 0.02 170 / 0.1)' }}>
           {([
-            { to: 125, suffix: ' kg', label: 'India avg CO₂ per person per month', grad: 'from-emerald-400 to-emerald-300' },
-            { to: 375, suffix: ' kg', label: 'Global avg CO₂ per person per month', grad: 'from-teal-400 to-teal-300' },
-            { to: 36,  suffix: 'B+',  label: 'Tonnes of CO₂ emitted globally every year', grad: 'from-lime-400 to-lime-300' },
-          ] as const).map(({ to, suffix, label, grad }, i) => (
+            { to: 125, suffix: ' kg', label: 'India avg CO₂ per person per month', color: 'oklch(0.87 0.185 150)' },
+            { to: 375, suffix: ' kg', label: 'Global avg CO₂ per person per month', color: 'oklch(0.83 0.105 205)' },
+            { to: 36,  suffix: 'B+',  label: 'Tonnes of CO₂ emitted globally every year', color: 'oklch(0.85 0.14 90)' },
+          ] as const).map(({ to, suffix, label, color }, i) => (
             <FadeUp key={label} delay={i * 0.1} className="text-center px-8">
-              <p className={`font-data font-bold text-5xl md:text-6xl bg-gradient-to-r ${grad} bg-clip-text text-transparent mb-2`}>
+              <p className="font-data font-bold text-5xl md:text-6xl mb-2" style={{ color }}>
                 <Num to={to} suffix={suffix} />
               </p>
-              <p className="text-xs text-zinc-600 leading-snug max-w-[12ch] mx-auto">{label}</p>
+              <p className="text-xs leading-snug max-w-[12ch] mx-auto" style={{ color: 'var(--cl-text-subtle)' }}>{label}</p>
             </FadeUp>
           ))}
         </div>
       </section>
 
       {/* ── how it works ── */}
-      <section className="w-full px-6 lg:px-16 py-24">
+      <section className="relative z-10 w-full px-6 lg:px-16 py-24">
         <FadeUp>
-          <p className="text-xs font-semibold text-emerald-400 tracking-widest uppercase mb-3">Process</p>
-          <h2 className="font-display text-4xl lg:text-5xl font-bold mb-16">
-            From unknown to <span className="gradient-text">actionable</span>.
+          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'oklch(0.87 0.185 150)' }}>Process</p>
+          <h2 className="font-display font-semibold mb-16" style={{ fontSize: 'clamp(28px, 4vw, 42px)', letterSpacing: '-0.025em', color: 'var(--cl-text)' }}>
+            From unknown to{' '}
+            <span style={{ background: 'linear-gradient(100deg, oklch(0.87 0.185 150), oklch(0.83 0.105 205))', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              actionable.
+            </span>
           </h2>
         </FadeUp>
         <div className="grid md:grid-cols-3 gap-5">
-          {STEPS.map(({ n, Icon, title, desc, c, bg }, i) => (
+          {STEPS.map(({ n, Icon, title, desc, color, bg, border }, i) => (
             <FadeUp key={n} delay={i * 0.12}>
-              <div className="h-full rounded-2xl p-6 border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300">
-                <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl border mb-5 ${bg}`}>
-                  <Icon size={18} className={c} />
+              <div className="h-full rounded-2xl p-6 transition-all duration-300" style={{ border: `1px solid var(--cl-border)`, background: 'var(--cl-surface)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${color} / 0.3`)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--cl-border)')}
+              >
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl mb-5" style={{ background: bg, border: `1px solid ${border}` }}>
+                  <Icon size={18} style={{ color }} />
                 </div>
-                <div className={`font-data text-xs font-semibold mb-2.5 ${c}`}>{n}</div>
-                <h3 className="font-display font-semibold text-white mb-2 leading-snug">{title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{desc}</p>
+                <div className="font-data text-xs font-semibold mb-2.5" style={{ color }}>{n}</div>
+                <h3 className="font-display font-semibold mb-2 leading-snug" style={{ color: 'var(--cl-text)' }}>{title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--cl-text-muted)' }}>{desc}</p>
               </div>
             </FadeUp>
           ))}
@@ -438,21 +474,21 @@ export default function Landing() {
       </section>
 
       {/* ── feature 1: daily log ── */}
-      <section className="border-t border-white/[0.04] w-full px-6 lg:px-16 py-24">
+      <section className="relative z-10 w-full px-6 lg:px-16 py-24" style={{ borderTop: '1px solid oklch(0.5 0.02 170 / 0.1)' }}>
         <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
           <SlideIn from="left">
-            <p className="text-xs font-semibold text-emerald-400 tracking-widest uppercase mb-4">Daily tracking</p>
-            <h2 className="font-display text-4xl font-bold mb-5 leading-tight">
+            <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: 'oklch(0.87 0.185 150)' }}>Daily tracking</p>
+            <h2 className="font-display font-semibold mb-5 leading-tight" style={{ fontSize: 'clamp(28px, 4vw, 38px)', letterSpacing: '-0.025em', color: 'var(--cl-text)' }}>
               Log your day<br />in 30 seconds.
             </h2>
-            <p className="text-zinc-400 leading-relaxed mb-7">
+            <p className="leading-relaxed mb-7" style={{ color: 'var(--cl-text-muted)' }}>
               The quick-log sheet pre-fills from your last entry. Adjust only what changed — a slider for km driven,
               a tap for diet, a number for orders. Most days: under a minute.
             </p>
             <ul className="space-y-3">
               {['Pre-fills from your previous log', 'Sliders for fast numeric input', 'Live CO₂ total updates as you adjust'].map((pt) => (
-                <li key={pt} className="flex items-center gap-2.5 text-sm text-zinc-400">
-                  <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+                <li key={pt} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--cl-text-muted)' }}>
+                  <CheckCircle2 size={15} style={{ color: 'oklch(0.87 0.185 150)', flexShrink: 0 }} />
                   {pt}
                 </li>
               ))}
@@ -465,24 +501,24 @@ export default function Landing() {
       </section>
 
       {/* ── feature 2: benchmark ── */}
-      <section className="border-t border-white/[0.04] w-full px-6 lg:px-16 py-24">
+      <section className="relative z-10 w-full px-6 lg:px-16 py-24" style={{ borderTop: '1px solid oklch(0.5 0.02 170 / 0.1)' }}>
         <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
           <SlideIn from="left">
             <ComparisonBars />
           </SlideIn>
           <SlideIn from="right" delay={0.1}>
-            <p className="text-xs font-semibold text-teal-400 tracking-widest uppercase mb-4">Benchmarking</p>
-            <h2 className="font-display text-4xl font-bold mb-5 leading-tight">
+            <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: 'oklch(0.83 0.105 205)' }}>Benchmarking</p>
+            <h2 className="font-display font-semibold mb-5 leading-tight" style={{ fontSize: 'clamp(28px, 4vw, 38px)', letterSpacing: '-0.025em', color: 'var(--cl-text)' }}>
               See where you stand<br />against India.
             </h2>
-            <p className="text-zinc-400 leading-relaxed mb-7">
+            <p className="leading-relaxed mb-7" style={{ color: 'var(--cl-text-muted)' }}>
               Your score is compared against real Indian demographics — not global averages that don't apply here.
               India's grid, roads, and food systems are different. Your benchmark should be too.
             </p>
             <ul className="space-y-3">
               {['CEA India 2023 grid emission factor', 'MoEFCC per-capita baseline', 'Live grid intensity via Electricity Maps API'].map((pt) => (
-                <li key={pt} className="flex items-center gap-2.5 text-sm text-zinc-400">
-                  <CheckCircle2 size={15} className="text-teal-500 shrink-0" />
+                <li key={pt} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--cl-text-muted)' }}>
+                  <CheckCircle2 size={15} style={{ color: 'oklch(0.83 0.105 205)', flexShrink: 0 }} />
                   {pt}
                 </li>
               ))}
@@ -492,21 +528,21 @@ export default function Landing() {
       </section>
 
       {/* ── feature 3: AI tips ── */}
-      <section className="border-t border-white/[0.04] w-full px-6 lg:px-16 py-24">
+      <section className="relative z-10 w-full px-6 lg:px-16 py-24" style={{ borderTop: '1px solid oklch(0.5 0.02 170 / 0.1)' }}>
         <div className="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
           <SlideIn from="left">
-            <p className="text-xs font-semibold text-lime-400 tracking-widest uppercase mb-4">AI-powered plan</p>
-            <h2 className="font-display text-4xl font-bold mb-5 leading-tight">
+            <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: 'oklch(0.85 0.14 90)' }}>AI-powered plan</p>
+            <h2 className="font-display font-semibold mb-5 leading-tight" style={{ fontSize: 'clamp(28px, 4vw, 38px)', letterSpacing: '-0.025em', color: 'var(--cl-text)' }}>
               Six cuts, ranked<br />by kg saved.
             </h2>
-            <p className="text-zinc-400 leading-relaxed mb-7">
+            <p className="leading-relaxed mb-7" style={{ color: 'var(--cl-text-muted)' }}>
               Claude AI reads your exact footprint breakdown and returns six specific actions — ordered by CO₂ impact,
               calibrated to your categories. Commit to one and track it over time.
             </p>
             <ul className="space-y-3">
               {['Ranked by kg CO₂ saved per month', 'Specific to your biggest categories', 'Difficulty-rated from Easy to Hard'].map((pt) => (
-                <li key={pt} className="flex items-center gap-2.5 text-sm text-zinc-400">
-                  <CheckCircle2 size={15} className="text-lime-500 shrink-0" />
+                <li key={pt} className="flex items-center gap-2.5 text-sm" style={{ color: 'var(--cl-text-muted)' }}>
+                  <CheckCircle2 size={15} style={{ color: 'oklch(0.85 0.14 90)', flexShrink: 0 }} />
                   {pt}
                 </li>
               ))}
@@ -516,51 +552,75 @@ export default function Landing() {
             <div className="space-y-3">
               {AI_TIPS.map((tip, i) => (
                 <FadeUp key={tip.title} delay={i * 0.1}>
-                  <div className="rounded-2xl p-4 border border-white/[0.06] bg-white/[0.02]">
+                  <div className="rounded-2xl p-4" style={{ border: '1px solid var(--cl-border)', background: 'var(--cl-surface)' }}>
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <p className="text-sm font-semibold text-white leading-snug">{tip.title}</p>
-                      <span className="shrink-0 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">{tip.diff}</span>
+                      <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--cl-text)' }}>{tip.title}</p>
+                      <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: 'oklch(0.87 0.185 150)', background: 'oklch(0.87 0.185 150 / 0.1)', border: '1px solid oklch(0.87 0.185 150 / 0.2)' }}>{tip.diff}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-zinc-600">{tip.cat}</span>
-                      <span className="font-data text-xs font-semibold text-emerald-400">~{tip.kg} kg CO₂/mo</span>
+                      <span className="text-xs" style={{ color: 'var(--cl-text-subtle)' }}>{tip.cat}</span>
+                      <span className="font-data text-xs font-semibold" style={{ color: 'oklch(0.87 0.185 150)' }}>~{tip.kg} kg CO₂/mo</span>
                     </div>
                   </div>
                 </FadeUp>
               ))}
               <FadeUp delay={0.35}>
-                <p className="text-xs text-zinc-700 text-center pt-1">Generated by Claude AI · personalised to your footprint</p>
+                <p className="text-xs text-center pt-1" style={{ color: 'var(--cl-text-subtle)' }}>Generated by Claude AI · personalised to your footprint</p>
               </FadeUp>
             </div>
           </SlideIn>
         </div>
       </section>
 
+      {/* ── understand your number (live component demos) ── */}
+      <section className="relative z-10 w-full px-6 lg:px-16 md:py-20 md:grid md:grid-cols-2" style={{ borderTop: '1px solid oklch(0.5 0.02 170 / 0.1)' }}>
+        
+        <FadeUp className="mb-10">
+          <div className='flex-row md:my-32'>
+          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: 'oklch(0.83 0.105 205)' }}>Understand your number</p>
+          <h2 className="font-display font-semibold leading-tight" style={{ fontSize: 'clamp(26px, 4vw, 38px)', letterSpacing: '-0.025em', color: 'var(--cl-text)', maxWidth: '22ch' }}>
+            Your score in the real world — not just a number.
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--cl-text-muted)', maxWidth: '50ch' }}>
+            CarbonLens translates your monthly total into tangible India-specific anchors and shows exactly where you stand against the national average.
+            Below is a preview using India's average of 125 kg/mo.
+          </p>
+          </div>
+        </FadeUp>
+        <div className="space-y-4 max-w-2xl">
+          <FadeUp delay={0.1}>
+            <BenchmarkRail kg={125} />
+          </FadeUp>
+          <FadeUp delay={0.2}>
+            <EquivalencesCard kg={125} period="monthly (India avg)" />
+          </FadeUp>
+        </div>
+      </section>
+
       {/* ── india context band ── */}
-      <section className="relative overflow-hidden border-y border-emerald-500/10 py-20"
-        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(8,12,10,1) 60%)' }}>
-        <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 bg-emerald-500/8 rounded-full blur-[100px] pointer-events-none" />
+      <section className="relative z-10 overflow-hidden py-20" style={{ borderTop: '1px solid oklch(0.87 0.185 150 / 0.1)', borderBottom: '1px solid oklch(0.87 0.185 150 / 0.1)', background: 'linear-gradient(135deg, oklch(0.87 0.185 150 / 0.06) 0%, var(--cl-base) 60%)' }}>
+        <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 rounded-full pointer-events-none" style={{ background: 'oklch(0.87 0.185 150 / 0.06)', filter: 'blur(100px)' }} />
         <div className="relative w-full px-6 lg:px-16">
           <FadeUp className="mb-12">
             <div className="flex items-center gap-3 mb-4">
-              <Globe size={16} className="text-emerald-400" />
-              <p className="text-xs font-semibold text-emerald-400 tracking-widest uppercase">Built for India</p>
+              <Globe size={16} style={{ color: 'oklch(0.87 0.185 150)' }} />
+              <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: 'oklch(0.87 0.185 150)' }}>Built for India</p>
             </div>
-            <h2 className="font-display text-4xl lg:text-5xl font-bold max-w-2xl leading-tight">
+            <h2 className="font-display font-semibold max-w-2xl leading-tight" style={{ fontSize: 'clamp(28px, 4vw, 42px)', letterSpacing: '-0.025em', color: 'var(--cl-text)' }}>
               Calibrated to India's grid, roads, and markets.
             </h2>
           </FadeUp>
           <div className="grid md:grid-cols-3 gap-6">
             {([
-              { Icon: Car,       label: '0.716 kg CO₂/kWh', sub: 'India grid factor (CEA 2023)', c: 'text-emerald-400' },
-              { Icon: Globe,     label: '3× below global',    sub: 'India avg vs world avg per capita', c: 'text-teal-400' },
-              { Icon: TrendingDown, label: '30% cut possible', sub: 'Achievable with 3 behaviour changes', c: 'text-lime-400' },
-            ] as const).map(({ Icon, label, sub, c }, i) => (
+              { Icon: Car,          label: '0.716 kg CO₂/kWh', sub: 'India grid factor (CEA 2023)',            color: 'oklch(0.87 0.185 150)' },
+              { Icon: Globe,        label: '3× below global',   sub: 'India avg vs world avg per capita',      color: 'oklch(0.83 0.105 205)' },
+              { Icon: TrendingDown, label: '30% cut possible',  sub: 'Achievable with 3 behaviour changes',    color: 'oklch(0.85 0.14 90)'   },
+            ] as const).map(({ Icon, label, sub, color }, i) => (
               <FadeUp key={label} delay={i * 0.1}>
-                <div className="rounded-2xl p-5 border border-white/[0.05] bg-white/[0.02]">
-                  <Icon size={18} className={`${c} mb-3`} />
-                  <p className={`font-data font-bold text-xl ${c} mb-1`}>{label}</p>
-                  <p className="text-xs text-zinc-600">{sub}</p>
+                <div className="rounded-2xl p-5" style={{ border: '1px solid var(--cl-border)', background: 'var(--cl-surface)' }}>
+                  <Icon size={18} style={{ color, marginBottom: 12 }} />
+                  <p className="font-data font-bold text-xl mb-1" style={{ color }}>{label}</p>
+                  <p className="text-xs" style={{ color: 'var(--cl-text-subtle)' }}>{sub}</p>
                 </div>
               </FadeUp>
             ))}
@@ -569,21 +629,25 @@ export default function Landing() {
       </section>
 
       {/* ── final CTA ── */}
-      <section className="w-full px-6 lg:px-16 py-28">
+      <section className="relative z-10 w-full px-6 lg:px-16 py-28">
         <FadeUp>
-          <div className="rounded-3xl p-12 md:p-20 text-center relative overflow-hidden border border-emerald-500/15"
-            style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(45,212,191,0.04) 50%, transparent 100%)' }}>
-            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 bg-emerald-500/12 rounded-full blur-3xl pointer-events-none" />
+          <div className="rounded-3xl p-12 md:p-20 text-center relative overflow-hidden" style={{ border: '1px solid oklch(0.87 0.185 150 / 0.15)', background: 'linear-gradient(135deg, oklch(0.87 0.185 150 / 0.08) 0%, oklch(0.83 0.105 205 / 0.04) 50%, var(--cl-base) 100%)' }}>
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none" style={{ background: 'oklch(0.87 0.185 150 / 0.12)', filter: 'blur(80px)' }} />
             <div className="relative">
-              <h2 className="font-display text-5xl md:text-6xl font-extrabold mb-4 leading-tight">
+              <h2 className="font-display font-semibold mb-4 leading-tight" style={{ fontSize: 'clamp(36px, 6vw, 56px)', letterSpacing: '-0.03em', color: 'var(--cl-text)' }}>
                 Five minutes.<br />
-                <span className="gradient-text">Real numbers.</span>
+                <span style={{ background: 'linear-gradient(100deg, oklch(0.87 0.185 150), oklch(0.83 0.105 205))', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  Real numbers.
+                </span>
               </h2>
-              <p className="text-zinc-500 mb-10 max-w-xs mx-auto text-sm leading-relaxed">
+              <p className="mb-10 max-w-xs mx-auto text-sm leading-relaxed" style={{ color: 'var(--cl-text-subtle)' }}>
                 No account. No email. Your data stays in your browser. India-specific from day one.
               </p>
-              <Link to={ctaProps.to}
-                className="inline-flex items-center gap-2 font-semibold text-[#080c0a] bg-gradient-to-r from-emerald-400 to-teal-400 hover:brightness-110 transition-all px-10 py-4 rounded-2xl focus-ring shadow-[0_0_40px_rgba(16,185,129,0.4)] text-base">
+              <Link
+                to={ctaProps.to}
+                className="inline-flex items-center gap-2 font-semibold px-10 py-4 rounded-2xl focus-ring transition-all hover:brightness-110"
+                style={{ background: 'oklch(0.87 0.185 150)', color: 'oklch(0.15 0.014 168)', boxShadow: '0 0 40px oklch(0.87 0.185 150 / 0.4)', fontSize: 16 }}
+              >
                 <ctaProps.Icon size={18} /> {ctaProps.label}
               </Link>
             </div>
@@ -592,11 +656,11 @@ export default function Landing() {
       </section>
 
       {/* ── footer ── */}
-      <footer className="border-t border-white/[0.04] py-8">
+      <footer style={{ borderTop: '1px solid oklch(0.5 0.02 170 / 0.08)', padding: '32px 0' }}>
         <div className="w-full px-6 lg:px-16 text-center space-y-1.5">
-          <p className="text-xs text-zinc-800">Emission factors: CEA India 2023 · IPCC AR6 · DEFRA 2023 · Poore &amp; Nemecek 2018</p>
-          <p className="text-xs text-zinc-800">India avg: 125 kg CO₂/mo (MoEFCC) · Global: 375 kg CO₂/mo (IEA 2022)</p>
-          <p className="text-xs text-zinc-900 pt-1">Disclaimer: Calculations are estimates for informational purposes only. Not a substitute for professional carbon accounting.</p>
+          <p className="text-xs" style={{ color: 'oklch(0.4 0.01 165)' }}>Emission factors: CEA India 2023 · IPCC AR6 · DEFRA 2023 · Poore &amp; Nemecek 2018</p>
+          <p className="text-xs" style={{ color: 'oklch(0.4 0.01 165)' }}>India avg: 125 kg CO₂/mo (MoEFCC) · Global: 375 kg CO₂/mo (IEA 2022)</p>
+          <p className="text-xs pt-1" style={{ color: 'oklch(0.32 0.008 165)' }}>Disclaimer: Calculations are estimates for informational purposes only.</p>
         </div>
       </footer>
     </div>

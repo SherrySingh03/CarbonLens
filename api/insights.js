@@ -32,6 +32,9 @@ export default async function handler(req) {
   const electricityKwh = Math.min(Number(footprintLog.homeEnergy?.electricityKwh) || 0, 10000)
   const gasUnits = Math.min(Number(footprintLog.homeEnergy?.gasUnits) || 0, 1000)
   const totalKgCO2 = Math.min(Number(footprintLog.totalKgCO2) || 0, 50000)
+  const onlineOrdersCount = Math.min(Number(footprintLog.purchases?.onlineOrdersCount) || 0, 100)
+  const newClothingItems  = Math.min(Number(footprintLog.purchases?.newClothingItems) || 0, 100)
+  const electronicsItems  = Math.min(Number(footprintLog.purchases?.electronicsItems) || 0, 100)
 
   const carType = sanitizeString(footprintLog.transport?.carType, VALID_CAR_TYPES, 'petrol')
   const energySource = sanitizeString(footprintLog.homeEnergy?.energySource, VALID_ENERGY_SOURCES, 'grid')
@@ -57,41 +60,54 @@ Prioritize categories with the highest CO2 contribution. Make tips specific to t
 - Transport: ${carKm}km by ${carType} car, ${flightHours}h flights, ${transitKm}km transit
 - Home energy: ${electricityKwh}kWh electricity (${energySource}), ${gasUnits} gas units
 - Diet: ${dietType}
-- Purchases: ${Number(footprintLog.purchases?.onlineOrdersCount) || 0} online orders, ${Number(footprintLog.purchases?.newClothingItems) || 0} clothing, ${Number(footprintLog.purchases?.electronicsItems) || 0} electronics
+- Purchases: ${onlineOrdersCount} online orders, ${newClothingItems} clothing, ${electronicsItems} electronics
 - Total: ${totalKgCO2.toFixed(1)} kg CO2/month
 - Already committed tip IDs (do not repeat): ${safeCommitted}
 
 Generate 6 tips tailored to this specific profile.`
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  })
+  const response = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': process.env.GEMINI_API_KEY ?? '',
+      },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.4, responseMimeType: 'application/json' },
+      }),
+    }
+  )
 
   if (!response.ok) {
-    return new Response('AI service error', { status: 502 })
+    const errBody = await response.text()
+    return new Response(
+      JSON.stringify({ geminiStatus: response.status, geminiError: errBody }),
+      { status: 502, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 
   const data = await response.json()
-  const tipsJson = data.content[0].text
-
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text
+  if (!rawText) {
+    return new Response(
+      JSON.stringify({ error: 'Empty AI response', data }),
+      { status: 502, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
   try {
-    JSON.parse(tipsJson)
+    JSON.parse(rawText)
   } catch {
-    return new Response('Invalid AI response format', { status: 500 })
+    return new Response(
+      JSON.stringify({ error: 'Invalid AI response format', rawText }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 
-  return new Response(tipsJson, {
+  return new Response(rawText, {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'private, max-age=3600',

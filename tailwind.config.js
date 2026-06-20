@@ -4,19 +4,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Bricolage Grotesque', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-      },
-      colors: {
-        leaf: {
-          50:  '#F0F6EC',
-          100: '#DCE8D4',
-          200: '#BAD4A8',
-          500: '#4A8C3F',
-          600: '#3A7030',
-          700: '#2D5725',
-        },
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        sans:    ['Hanken Grotesk', 'system-ui', 'sans-serif'],
+        mono:    ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         '4xl': '2rem',
@@ -36,9 +26,9 @@ export default {
         },
       },
       animation: {
-        'count-up':  'count-up 0.4s ease-out forwards',
-        'fade-in':   'fade-in 0.5s ease-out forwards',
-        'slide-up':  'slide-up 0.5s ease-out forwards',
+        'count-up': 'count-up 0.4s ease-out forwards',
+        'fade-in':  'fade-in 0.5s ease-out forwards',
+        'slide-up': 'slide-up 0.5s ease-out forwards',
       },
     },
   },

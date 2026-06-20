@@ -1,39 +1,47 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Lightbulb, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import InsightCard from '../components/InsightCard'
+import RewardPopup from '../components/RewardPopup'
 import { fetchInsights } from '../lib/ai'
+import type { InsightTip } from '../types'
 
 function SkeletonCard() {
   return (
     <div className="card p-5 animate-pulse">
-      <div className="h-4 bg-white/5 rounded w-3/4 mb-3" />
-      <div className="h-3 bg-white/5 rounded w-full mb-1.5" />
-      <div className="h-3 bg-white/5 rounded w-2/3 mb-4" />
-      <div className="h-7 bg-white/5 rounded-full w-1/3" />
+      <div className="h-4 rounded w-3/4 mb-3" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
+      <div className="h-3 rounded w-full mb-1.5" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
+      <div className="h-3 rounded w-2/3 mb-4" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
+      <div className="h-7 rounded-full w-1/3" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
     </div>
   )
 }
 
 export default function Insights() {
-  const { todayLog, profile, tips, commitTip, saveInsightTips } = useApp()
+  const { todayLog, profile, tips, completedSavingKgCO2, commitTip, completeTip, saveInsightTips } = useApp()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [committedOpen, setCommittedOpen] = useState(false)
+  const [committedOpen, setCommittedOpen] = useState(true)
+  const [completedOpen, setCompletedOpen] = useState(false)
+  const [rewardTip, setRewardTip] = useState<InsightTip | null>(null)
 
-  const uncommitted = tips
-    .filter((t) => !t.committed)
-    .sort((a, b) => b.estimatedSavingKgCO2 - a.estimatedSavingKgCO2)
-  const committed = tips.filter((t) => t.committed)
-  const totalPotential = uncommitted.reduce((sum, t) => sum + t.estimatedSavingKgCO2, 0)
+  const active    = tips.filter((t) => !t.committed && !t.completed).sort((a, b) => b.estimatedSavingKgCO2 - a.estimatedSavingKgCO2)
+  const committed = tips.filter((t) => t.committed && !t.completed)
+  const completed = tips.filter((t) => t.completed)
+  const totalPotential = active.reduce((s, t) => s + t.estimatedSavingKgCO2, 0)
+
+  const handleComplete = useCallback((id: string) => {
+    completeTip(id)
+    const tip = tips.find((t) => t.id === id)
+    if (tip) setRewardTip({ ...tip, completed: true })
+  }, [completeTip, tips])
 
   async function handleRefresh() {
     if (!todayLog || !profile) return
     setLoading(true)
     setError(null)
     try {
-      const committedIds = committed.map((t) => t.id)
-      const newTips = await fetchInsights(todayLog, profile, committedIds)
+      const newTips = await fetchInsights(todayLog, profile, [...committed, ...completed].map((t) => t.id))
       saveInsightTips(newTips)
     } catch {
       setError('Could not load tips. Check your connection and try again.')
@@ -44,20 +52,32 @@ export default function Insights() {
 
   return (
     <section aria-label="Personalised reduction plan" className="animate-slide-up">
-      <div className="flex items-start justify-between mb-5 pb-5 border-b border-white/5">
+      <RewardPopup tip={rewardTip} onClose={() => setRewardTip(null)} />
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5 pb-5" style={{ borderBottom: '1px solid var(--cl-border)' }}>
         <div>
-          <h1 className="font-display text-2xl font-bold text-white">Your reduction plan</h1>
-          {totalPotential > 0 && (
-            <p className="text-sm text-zinc-500 mt-0.5">
-              Potential saving:{' '}
-              <strong className="text-emerald-400">{totalPotential.toFixed(1)} kg CO₂/mo</strong>
-            </p>
-          )}
+          <h1 className="font-display text-2xl font-semibold" style={{ color: 'var(--cl-text)', letterSpacing: '-0.02em' }}>Your reduction plan</h1>
+          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+            {totalPotential > 0 && (
+              <p className="text-sm" style={{ color: 'var(--cl-text-muted)' }}>
+                Potential:{' '}
+                <strong style={{ color: 'oklch(0.87 0.185 150)' }}>{totalPotential.toFixed(1)} kg/mo</strong>
+              </p>
+            )}
+            {completedSavingKgCO2 > 0 && (
+              <p className="text-sm" style={{ color: 'var(--cl-text-muted)' }}>
+                Saved:{' '}
+                <strong style={{ color: 'oklch(0.84 0.16 152)' }}>−{completedSavingKgCO2.toFixed(1)} kg/mo</strong>
+              </p>
+            )}
+          </div>
         </div>
         <button
           onClick={handleRefresh}
           disabled={loading || !todayLog}
-          className="shrink-0 flex items-center gap-1.5 text-sm font-medium text-emerald-400 border border-emerald-500/25 bg-emerald-500/8 rounded-xl px-3 py-2 hover:bg-emerald-500/15 transition-colors disabled:opacity-40 focus-ring"
+          className="shrink-0 flex items-center gap-1.5 text-sm font-medium rounded-xl px-3 py-2 focus-ring transition-colors disabled:opacity-40"
+          style={{ color: 'oklch(0.87 0.185 150)', border: '1px solid oklch(0.87 0.185 150 / 0.28)', background: 'oklch(0.87 0.185 150 / 0.07)' }}
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           {loading ? 'Loading…' : 'Refresh tips'}
@@ -65,53 +85,85 @@ export default function Insights() {
       </div>
 
       {!todayLog && (
-        <p className="text-sm text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-4">
+        <p className="text-sm rounded-2xl px-4 py-3 mb-4" style={{ color: 'oklch(0.85 0.14 90)', background: 'oklch(0.85 0.14 90 / 0.08)', border: '1px solid oklch(0.85 0.14 90 / 0.22)' }}>
           Log your footprint first to get personalised tips.
         </p>
       )}
-
       {error && (
-        <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 mb-4">
+        <p className="text-sm rounded-2xl px-4 py-3 mb-4" style={{ color: 'oklch(0.74 0.16 35)', background: 'oklch(0.70 0.18 33 / 0.08)', border: '1px solid oklch(0.70 0.18 33 / 0.22)' }}>
           {error}
         </p>
       )}
 
+      {/* Active tips */}
       <div className="space-y-3">
         {loading ? (
           [1, 2, 3].map((i) => <SkeletonCard key={i} />)
-        ) : uncommitted.length === 0 && tips.length === 0 ? (
+        ) : active.length === 0 && tips.length === 0 ? (
           <div className="card p-10 text-center">
-            <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/15 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Lightbulb size={24} className="text-amber-400" />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'oklch(0.85 0.14 90 / 0.10)', border: '1px solid oklch(0.85 0.14 90 / 0.22)' }}>
+              <Lightbulb size={24} style={{ color: 'oklch(0.85 0.14 90)' }} />
             </div>
-            <p className="font-display font-semibold text-white">No tips yet</p>
-            <p className="text-sm text-zinc-500 mt-1">Tap Refresh tips to get your personalised plan</p>
+            <p className="font-display font-semibold" style={{ color: 'var(--cl-text)' }}>No tips yet</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--cl-text-muted)' }}>Tap Refresh tips to get your personalised plan</p>
+          </div>
+        ) : active.length === 0 ? (
+          <div className="card p-6 text-center">
+            <p className="font-display font-semibold mb-1" style={{ color: 'oklch(0.84 0.16 152)' }}>All tips actioned 🌱</p>
+            <p className="text-sm" style={{ color: 'var(--cl-text-muted)' }}>Refresh for a new set of recommendations.</p>
           </div>
         ) : (
-          uncommitted.map((tip) => (
-            <InsightCard key={tip.id} tip={tip} onCommit={commitTip} />
+          active.map((tip) => (
+            <InsightCard key={tip.id} tip={tip} onCommit={commitTip} onComplete={handleComplete} />
           ))
         )}
       </div>
 
+      {/* Committed — will try */}
       {committed.length > 0 && (
-        <div className="mt-6 border-t border-white/5 pt-5">
+        <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--cl-border)' }}>
           <button
             onClick={() => setCommittedOpen((o) => !o)}
-            className="text-sm font-medium text-zinc-500 flex items-center gap-1.5 hover:text-zinc-200 transition-colors focus-ring rounded-lg"
+            className="text-sm font-medium flex items-center gap-1.5 focus-ring rounded-lg w-full text-left mb-3"
+            style={{ color: 'var(--cl-text-muted)' }}
             aria-expanded={committedOpen}
           >
             {committedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            Committed ({committed.length}) —{' '}
-            <strong className="text-emerald-400">
-              {committed.reduce((s, t) => s + t.estimatedSavingKgCO2, 0).toFixed(1)} kg CO₂/mo
-            </strong>{' '}
-            saved
+            <span>Will try ({committed.length})</span>
+            <span style={{ color: 'oklch(0.87 0.185 150)', marginLeft: 4 }}>
+              · {committed.reduce((s, t) => s + t.estimatedSavingKgCO2, 0).toFixed(1)} kg/mo potential
+            </span>
           </button>
           {committedOpen && (
-            <div className="space-y-3 mt-3">
+            <div className="space-y-3">
               {committed.map((tip) => (
-                <InsightCard key={tip.id} tip={tip} onCommit={commitTip} />
+                <InsightCard key={tip.id} tip={tip} onCommit={commitTip} onComplete={handleComplete} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Completed */}
+      {completed.length > 0 && (
+        <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--cl-border)' }}>
+          <button
+            onClick={() => setCompletedOpen((o) => !o)}
+            className="text-sm font-medium flex items-center gap-1.5 focus-ring rounded-lg w-full text-left mb-3"
+            style={{ color: 'var(--cl-text-muted)' }}
+            aria-expanded={completedOpen}
+          >
+            {completedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            <span>Completed ({completed.length})</span>
+            <span style={{ color: 'oklch(0.84 0.16 152)', marginLeft: 4 }}>
+              · −{completedSavingKgCO2.toFixed(1)} kg/mo saved
+            </span>
+          </button>
+          {completedOpen && (
+            <div className="space-y-3">
+              {completed.map((tip) => (
+                <InsightCard key={tip.id} tip={tip} onCommit={commitTip} onComplete={handleComplete} />
               ))}
             </div>
           )}
