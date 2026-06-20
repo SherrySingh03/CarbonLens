@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build CarbonLens — a React + TypeScript web app that helps Indians understand, track, and reduce their carbon footprint, with AI-powered tips via Anthropic Claude and a Vercel Edge Function proxy.
+**Goal:** Build CarbonLens — a React + TypeScript web app that helps Indians understand, track, and reduce their carbon footprint, with AI-powered tips via Google Gemini and a Vercel Edge Function proxy.
 
-**Architecture:** Single-page app with React Context as the state layer (synced to localStorage), four pages (Onboarding, Dashboard, Insights, Progress), and a Vercel Edge Function that proxies Claude API calls to keep the API key off the frontend. Emissions calculations live in pure functions tested with Vitest before anything else is wired up.
+**Architecture:** Single-page app with React Context as the state layer (synced to localStorage), four pages (Onboarding, Dashboard, Insights, Progress), and a Vercel Edge Function that proxies Gemini API calls to keep the API key off the frontend. Emissions calculations live in pure functions tested with Vitest before anything else is wired up.
 
-**Tech Stack:** React 18, Vite, TypeScript, Tailwind CSS v3, React Router v6, Recharts, Vitest, Vercel Edge Functions, Anthropic Claude (claude-sonnet-4-6)
+**Tech Stack:** React 18, Vite, TypeScript, Tailwind CSS v3, React Router v6, Recharts, Vitest, Vercel Edge Functions, Google Gemini
 
 ## Global Constraints
 
