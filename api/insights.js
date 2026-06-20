@@ -9,6 +9,16 @@ function sanitizeString(val, validValues, fallback) {
 }
 
 export default async function handler(req) {
+  if (req.method === 'OPTIONS' || req.method === 'HEAD') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': 'same-origin',
+        'Access-Control-Allow-Methods': 'POST',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    })
+  }
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
@@ -47,18 +57,18 @@ export default async function handler(req) {
         .join(', ')
     : 'none'
 
-  const systemPrompt = `You are a carbon footprint reduction expert for Indian users. Given a user's monthly carbon footprint data, generate exactly 6 personalized, specific, actionable tips to reduce their footprint.
+  const systemPrompt = `You are a carbon footprint reduction expert for Indian users. Given a user's monthly carbon footprint data, generate exactly 6 personalized, actionable tips to reduce their footprint.
 
 Return ONLY a valid JSON array. No markdown, no explanation, no preamble. Each object must have:
 - id: string (unique, e.g. "tip_001")
 - category: one of "transport" | "energy" | "diet" | "purchases"
-- title: string (max 8 words, action-oriented)
-- description: string (1-2 sentences, specific and encouraging, India-relevant)
+- title: string (max 6 words, action-oriented)
+- description: string (max 15 words, India-relevant, specific to user data)
 - estimatedSavingKgCO2: number (monthly saving in kg, realistic)
 - difficulty: "easy" | "medium" | "hard"
 - committed: false
 
-Prioritize categories with the highest CO2 contribution. Make tips specific to the user's actual data. Do not suggest tips the user has already committed to.`
+Be extremely concise. The entire JSON response must stay under 250 words. Prioritize categories with the highest CO2 contribution. Do not suggest tips the user has already committed to.`
 
   const userMessage = `User footprint data:
 - Transport: ${carKm}km by ${carType} car, ${flightHours}h flights, ${transitKm}km transit
@@ -71,7 +81,7 @@ Prioritize categories with the highest CO2 contribution. Make tips specific to t
 Generate 6 tips tailored to this specific profile.`
 
   const response = await fetch(
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent',
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
     {
       method: 'POST',
       headers: {
@@ -81,7 +91,7 @@ Generate 6 tips tailored to this specific profile.`
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.4, responseMimeType: 'application/json' },
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.4, responseMimeType: 'application/json' }
       }),
     }
   )
@@ -102,16 +112,30 @@ Generate 6 tips tailored to this specific profile.`
       { status: 502, headers: { 'Content-Type': 'application/json' } }
     )
   }
+  // Parse — with truncation recovery.
+  // Gemini occasionally truncates mid-object when the response is long.
+  // Literal newlines in JSON only appear as structural whitespace (string values
+  // use escaped \n), so `},\n` reliably marks the end of a complete tip object.
+  let tips
   try {
-    JSON.parse(rawText)
+    tips = JSON.parse(rawText)
   } catch {
+    const lastComplete = rawText.lastIndexOf('},\n')
+    if (lastComplete >= 0) {
+      try {
+        tips = JSON.parse(rawText.slice(0, lastComplete + 1) + '\n]')
+      } catch {}
+    }
+  }
+
+  if (!Array.isArray(tips) || tips.length === 0) {
     return new Response(
       JSON.stringify({ error: 'Invalid AI response format', rawText }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-  return new Response(rawText, {
+  return new Response(JSON.stringify(tips), {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'private, max-age=3600',

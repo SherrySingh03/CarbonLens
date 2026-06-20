@@ -14,7 +14,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return profile ? <>{children}</> : <Navigate to="/onboarding" replace />
 }
 
-function OnboardingRoute({ children }: { children: React.ReactNode }) {
+export function OnboardingRoute({ children }: { children: React.ReactNode }) {
   const { profile } = useApp()
   return profile ? <Navigate to="/dashboard" replace /> : <>{children}</>
 }

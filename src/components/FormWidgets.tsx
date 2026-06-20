@@ -30,6 +30,7 @@ export function Toggle({ label, description, value, onChange }: {
         type="button"
         role="switch"
         aria-checked={value}
+        aria-label={label}
         onClick={() => onChange(!value)}
         className="focus-ring"
         style={{
@@ -74,11 +75,15 @@ export function SegmentedPick<T extends string>({
       <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(0.84 0.014 165)', marginBottom: 12 }}>
         {label}
       </div>
-      <div style={{
-        position: 'relative', display: 'flex', padding: 4,
-        borderRadius: 12, background: 'oklch(0.235 0.018 172)',
-        border: '1px solid oklch(0.5 0.02 170 / 0.16)',
-      }}>
+      <div
+        role="radiogroup"
+        aria-label={label}
+        style={{
+          position: 'relative', display: 'flex', padding: 4,
+          borderRadius: 12, background: 'oklch(0.235 0.018 172)',
+          border: '1px solid oklch(0.5 0.02 170 / 0.16)',
+        }}
+      >
         <div style={{
           position: 'absolute', top: 4, bottom: 4, left: 4,
           width: `calc(${100 / options.length}% - 4px)`,

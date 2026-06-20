@@ -1,18 +1,93 @@
-import { useState, useCallback } from 'react'
-import { Lightbulb, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { Lightbulb, RefreshCw, ChevronDown, ChevronRight, Leaf } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import InsightCard from '../components/InsightCard'
 import RewardPopup from '../components/RewardPopup'
-import { fetchInsights } from '../lib/ai'
+import { fetchInsights, clearInsightsCache } from '../lib/ai'
 import type { InsightTip } from '../types'
 
-function SkeletonCard() {
+const LOADING_STEPS = [
+  { label: 'Reading your footprint data',    detail: 'Checking transport, energy, diet and purchases…' },
+  { label: 'Finding high-impact areas',      detail: 'Comparing against India average benchmarks…'     },
+  { label: 'Generating personalised tips',   detail: 'Crafting actionable recommendations just for you…' },
+  { label: 'Calculating savings potential',  detail: 'Estimating how much CO₂ you can cut per month…'  },
+]
+
+function TipsLoadingState() {
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => Math.min(s + 1, LOADING_STEPS.length - 1)), 3000)
+    return () => clearInterval(id)
+  }, [])
+
+  const current = LOADING_STEPS[step]
+
   return (
-    <div className="card p-5 animate-pulse">
-      <div className="h-4 rounded w-3/4 mb-3" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
-      <div className="h-3 rounded w-full mb-1.5" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
-      <div className="h-3 rounded w-2/3 mb-4" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
-      <div className="h-7 rounded-full w-1/3" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }} />
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Generating tips"
+      className="card p-8 flex flex-col items-center text-center gap-5"
+    >
+      {/* Icon */}
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center"
+        style={{
+          background: 'oklch(0.87 0.185 150 / 0.10)',
+          border: '1px solid oklch(0.87 0.185 150 / 0.28)',
+          boxShadow: '0 0 28px oklch(0.87 0.185 150 / 0.15)',
+        }}
+      >
+        <Leaf size={24} aria-hidden="true" className="motion-safe:animate-pulse" style={{ color: 'oklch(0.87 0.185 150)' }} />
+      </div>
+
+      {/* Cycling message — key change forces remount so animation replays */}
+      <div className="space-y-1.5 min-h-[3rem]">
+        <p
+          key={`label-${step}`}
+          className="font-display font-semibold text-base motion-safe:animate-step-in"
+          style={{ color: 'var(--cl-text)' }}
+        >
+          {current.label}
+        </p>
+        <p
+          key={`detail-${step}`}
+          className="text-sm motion-safe:animate-step-in"
+          style={{ color: 'var(--cl-text-muted)', animationDelay: '60ms' }}
+        >
+          {current.detail}
+        </p>
+      </div>
+
+      {/* Step dots — decorative, progress conveyed via live region text above */}
+      <div aria-hidden="true" className="flex items-center gap-2">
+        {LOADING_STEPS.map((_, i) => (
+          <div
+            key={i}
+            className="rounded-full transition-all duration-500"
+            style={{
+              width:  i === step ? '20px' : '6px',
+              height: '6px',
+              background: i <= step
+                ? 'oklch(0.87 0.185 150)'
+                : 'oklch(0.3 0.016 170)',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Shimmer bar — decorative */}
+      <div
+        aria-hidden="true"
+        className="w-full rounded-full overflow-hidden"
+        style={{ height: '3px', background: 'oklch(0.3 0.016 170)' }}
+      >
+        <div
+          className="h-full w-1/3 rounded-full motion-safe:animate-shimmer"
+          style={{ background: 'linear-gradient(90deg, transparent, oklch(0.87 0.185 150), transparent)' }}
+        />
+      </div>
     </div>
   )
 }
@@ -40,9 +115,12 @@ export default function Insights() {
     if (!todayLog || !profile) return
     setLoading(true)
     setError(null)
+    clearInsightsCache()
     try {
-      const newTips = await fetchInsights(todayLog, profile, [...committed, ...completed].map((t) => t.id))
-      saveInsightTips(newTips)
+      const preservedIds = [...committed, ...completed].map((t) => t.id)
+      const newTips = await fetchInsights(todayLog, profile, preservedIds, true)
+      const preserved = tips.filter((t) => t.committed || t.completed)
+      saveInsightTips([...preserved, ...newTips])
     } catch {
       setError('Could not load tips. Check your connection and try again.')
     } finally {
@@ -74,6 +152,7 @@ export default function Insights() {
           </div>
         </div>
         <button
+          type="button"
           onClick={handleRefresh}
           disabled={loading || !todayLog}
           className="shrink-0 flex items-center gap-1.5 text-sm font-medium rounded-xl px-3 py-2 focus-ring transition-colors disabled:opacity-40"
@@ -98,7 +177,7 @@ export default function Insights() {
       {/* Active tips */}
       <div className="space-y-3">
         {loading ? (
-          [1, 2, 3].map((i) => <SkeletonCard key={i} />)
+          <TipsLoadingState />
         ) : active.length === 0 && tips.length === 0 ? (
           <div className="card p-10 text-center">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"

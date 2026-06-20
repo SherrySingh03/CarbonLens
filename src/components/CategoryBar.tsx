@@ -67,48 +67,60 @@ const CategoryBar = memo(function CategoryBar({ category, kg, total, explain }: 
   const pct = total > 0 ? (kg / total) * 100 : 0
   const [open, setOpen] = useState(false)
 
+  const rowInner = (
+    <>
+      <div style={{ color: iconColor, flexShrink: 0 }}>
+        <Icon size={17} strokeWidth={2} aria-hidden="true" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between mb-1.5">
+          <span className="text-sm font-medium" style={{ color: 'var(--cl-text-muted)' }}>{label}</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-data text-sm font-semibold" style={{ color: valColor }}>{kg.toFixed(1)} kg</span>
+            <span className="text-xs" style={{ color: 'var(--cl-text-subtle)' }}>{pct.toFixed(0)}%</span>
+          </div>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }}>
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${pct}%`, background: barGrad }}
+            role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
+            aria-label={`${label}: ${pct.toFixed(0)}% of total`}
+          />
+        </div>
+      </div>
+      {explain && (
+        <ChevronDown
+          size={15}
+          aria-hidden="true"
+          style={{
+            color: 'var(--cl-text-subtle)', flexShrink: 0, marginLeft: 4,
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.22s ease',
+          }}
+        />
+      )}
+    </>
+  )
+
   return (
     <div style={{ ...rowStyle, borderRadius: '1rem', overflow: 'hidden' }}>
       {/* Main row — always visible */}
-      <div
-        className={`flex items-center gap-3 px-4 py-3 ${explain ? 'cursor-pointer select-none' : ''}`}
-        onClick={explain ? () => setOpen((o) => !o) : undefined}
-        onKeyDown={explain ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o) } } : undefined}
-        role={explain ? 'button' : undefined}
-        tabIndex={explain ? 0 : undefined}
-        aria-expanded={explain ? open : undefined}
-      >
-        <div style={{ color: iconColor, flexShrink: 0 }}>
-          <Icon size={17} strokeWidth={2} aria-hidden="true" />
+      {explain ? (
+        <button
+          type="button"
+          className="flex items-center gap-3 px-4 py-3 w-full cursor-pointer select-none focus-ring"
+          style={{ background: 'none', border: 'none', textAlign: 'left' }}
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+        >
+          {rowInner}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3 px-4 py-3">
+          {rowInner}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between mb-1.5">
-            <span className="text-sm font-medium" style={{ color: 'var(--cl-text-muted)' }}>{label}</span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-data text-sm font-semibold" style={{ color: valColor }}>{kg.toFixed(1)} kg</span>
-              <span className="text-xs" style={{ color: 'var(--cl-text-subtle)' }}>{pct.toFixed(0)}%</span>
-            </div>
-          </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'oklch(0.3 0.016 170 / 0.5)' }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${pct}%`, background: barGrad }}
-              role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
-              aria-label={`${label}: ${pct.toFixed(0)}% of total`}
-            />
-          </div>
-        </div>
-        {explain && (
-          <ChevronDown
-            size={15}
-            style={{
-              color: 'var(--cl-text-subtle)', flexShrink: 0, marginLeft: 4,
-              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.22s ease',
-            }}
-          />
-        )}
-      </div>
+      )}
 
       {/* Explain drawer */}
       {explain && open && (

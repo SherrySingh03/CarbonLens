@@ -11,7 +11,7 @@ interface TipsCache {
   savedAt: number
 }
 
-function hashLog(log: FootprintLog): string {
+export function hashLog(log: FootprintLog): string {
   const breakdown = getCategoryBreakdown(log)
   const parts = Object.values(breakdown).map((v) => v.toFixed(1))
   return `${log.totalKgCO2.toFixed(1)}_${parts.join('_')}`
@@ -35,7 +35,7 @@ function setCached(hash: string, tips: InsightTip[]): void {
   localStorage.setItem(CACHE_KEY, JSON.stringify(entry))
 }
 
-function isValidTip(t: unknown): t is InsightTip {
+export function isValidTip(t: unknown): t is InsightTip {
   if (!t || typeof t !== 'object') return false
   const tip = t as Record<string, unknown>
   return (
@@ -48,13 +48,18 @@ function isValidTip(t: unknown): t is InsightTip {
   )
 }
 
+export function clearInsightsCache(): void {
+  localStorage.removeItem(CACHE_KEY)
+}
+
 export async function fetchInsights(
   log: FootprintLog,
   profile: UserProfile,
-  excludedTipIds: string[]
+  excludedTipIds: string[],
+  skipCache = false
 ): Promise<InsightTip[]> {
   const hash = hashLog(log)
-  const cached = getCached(hash)
+  const cached = skipCache ? null : getCached(hash)
   if (cached) return cached
 
   const grid = await fetchGridIntensity()
@@ -67,9 +72,9 @@ export async function fetchInsights(
 
   if (!res.ok) throw new Error(`Insights fetch failed: ${res.status}`)
   const raw: unknown = await res.json()
-  if (!Array.isArray(raw) || !raw.every(isValidTip)) {
-    throw new Error('AI returned unexpected response shape')
-  }
-  setCached(hash, raw)
-  return raw
+  if (!Array.isArray(raw)) throw new Error('AI returned unexpected response shape')
+  const tips = raw.filter(isValidTip)
+  if (tips.length === 0) throw new Error('AI returned no usable tips')
+  setCached(hash, tips)
+  return tips
 }
