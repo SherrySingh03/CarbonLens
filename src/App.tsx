@@ -14,12 +14,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return profile ? <>{children}</> : <Navigate to="/onboarding" replace />
 }
 
+function OnboardingRoute({ children }: { children: React.ReactNode }) {
+  const { profile } = useApp()
+  return profile ? <Navigate to="/dashboard" replace /> : <>{children}</>
+}
+
 export default function App() {
   return (
     <Routes>
       {/* Landing always shown; returning users see a dashboard link */}
       <Route path="/" element={<Landing />} />
-      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/onboarding" element={<OnboardingRoute><Onboarding /></OnboardingRoute>} />
 
       {/* Protected app routes */}
       <Route

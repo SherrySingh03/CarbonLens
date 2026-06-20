@@ -128,6 +128,7 @@ export default function Insights() {
             className="text-sm font-medium flex items-center gap-1.5 focus-ring rounded-lg w-full text-left mb-3"
             style={{ color: 'var(--cl-text-muted)' }}
             aria-expanded={committedOpen}
+            aria-controls="committed-tips-list"
           >
             {committedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <span>Will try ({committed.length})</span>
@@ -136,7 +137,7 @@ export default function Insights() {
             </span>
           </button>
           {committedOpen && (
-            <div className="space-y-3">
+            <div id="committed-tips-list" className="space-y-3">
               {committed.map((tip) => (
                 <InsightCard key={tip.id} tip={tip} onCommit={commitTip} onComplete={handleComplete} />
               ))}
@@ -153,6 +154,7 @@ export default function Insights() {
             className="text-sm font-medium flex items-center gap-1.5 focus-ring rounded-lg w-full text-left mb-3"
             style={{ color: 'var(--cl-text-muted)' }}
             aria-expanded={completedOpen}
+            aria-controls="completed-tips-list"
           >
             {completedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             <span>Completed ({completed.length})</span>
@@ -161,7 +163,7 @@ export default function Insights() {
             </span>
           </button>
           {completedOpen && (
-            <div className="space-y-3">
+            <div id="completed-tips-list" className="space-y-3">
               {completed.map((tip) => (
                 <InsightCard key={tip.id} tip={tip} onCommit={commitTip} onComplete={handleComplete} />
               ))}

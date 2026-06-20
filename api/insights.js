@@ -40,7 +40,11 @@ export default async function handler(req) {
   const energySource = sanitizeString(footprintLog.homeEnergy?.energySource, VALID_ENERGY_SOURCES, 'grid')
   const dietType = sanitizeString(footprintLog.diet?.dietType, VALID_DIET_TYPES, 'average')
   const safeCommitted = Array.isArray(committedTipIds)
-    ? committedTipIds.filter((id) => typeof id === 'string').slice(0, 50).join(', ')
+    ? committedTipIds
+        .filter((id) => typeof id === 'string')
+        .slice(0, 50)
+        .map((id) => id.slice(0, 64))
+        .join(', ')
     : 'none'
 
   const systemPrompt = `You are a carbon footprint reduction expert for Indian users. Given a user's monthly carbon footprint data, generate exactly 6 personalized, specific, actionable tips to reduce their footprint.

@@ -4,7 +4,7 @@ import {
 import { useApp } from '../context/AppContext'
 import HeatmapCalendar from '../components/HeatmapCalendar'
 import ProgressBar from '../components/ProgressBar'
-import { INDIA_AVERAGE_KG_CO2_PER_MONTH } from '../lib/emissions'
+import { INDIA_AVERAGE_KG_CO2_PER_MONTH, dailyAvgOrFallback } from '../lib/emissions'
 
 export default function Progress() {
   const { profile, allLogs } = useApp()
@@ -22,9 +22,7 @@ export default function Progress() {
   const currentAvg = thisMonthLogs.length
     ? thisMonthLogs.reduce((s, l) => s + l.totalKgCO2, 0) / thisMonthLogs.length
     : 0
-  const lastAvg = lastMonthLogs.length
-    ? lastMonthLogs.reduce((s, l) => s + l.totalKgCO2, 0) / lastMonthLogs.length
-    : INDIA_AVERAGE_KG_CO2_PER_MONTH
+  const lastAvg = dailyAvgOrFallback(lastMonthLogs)
 
   const goalPct = profile?.monthlyGoalReductionPct ?? 10
   const goalKg = lastAvg * (1 - goalPct / 100)
@@ -88,10 +86,10 @@ export default function Progress() {
                 }}
               />
               <ReferenceLine
-                y={INDIA_AVERAGE_KG_CO2_PER_MONTH}
+                y={INDIA_AVERAGE_KG_CO2_PER_MONTH / 30}
                 stroke="oklch(0.85 0.14 90)"
                 strokeDasharray="4 2"
-                label={{ value: 'India avg', fontSize: 10, fill: 'oklch(0.85 0.14 90)', position: 'right' }}
+                label={{ value: 'India avg/day', fontSize: 10, fill: 'oklch(0.85 0.14 90)', position: 'right' }}
               />
               <Line
                 type="monotone" dataKey="kg"

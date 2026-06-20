@@ -1,181 +1,13 @@
-import { useState, useEffect, useRef, useId } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { calculateTotal, calculateTransportEmissions, calculateEnergyEmissions } from '../lib/emissions'
+import { calculateTotal, calculateTransportEmissions, calculateEnergyEmissions, appliancesToEnergy } from '../lib/emissions'
+import { Panel, Toggle, SegmentedPick, RangeSlider, Counter } from './FormWidgets'
 import type { FootprintLog, TransportData, HomeEnergyData, DietData, PurchasesData } from '../types'
 
 const CAR_OPTS   = ['none', 'electric', 'petrol', 'diesel'] as const
 const ENERGY_OPTS = ['grid', 'mixed', 'renewable'] as const
 const DIET_OPTS  = ['vegan', 'vegetarian', 'average', 'meat-heavy'] as const
-
-// ─── Segmented control ────────────────────────────────────────────────────────
-
-function SegmentedPick<T extends string>({
-  label, options, value, onChange, formatLabel,
-}: {
-  label: string
-  options: readonly T[]
-  value: T
-  onChange: (v: T) => void
-  formatLabel?: (opt: T) => string
-}) {
-  const idx = options.indexOf(value)
-  const fmt = formatLabel ?? ((opt: T) => {
-    if (opt === 'none') return 'No car'
-    if (opt === 'meat-heavy') return 'Meat+'
-    return opt.charAt(0).toUpperCase() + opt.slice(1)
-  })
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'oklch(0.84 0.014 165)', marginBottom: 12 }}>
-        {label}
-      </label>
-      <div style={{
-        position: 'relative', display: 'flex', padding: 4,
-        borderRadius: 12, background: 'oklch(0.235 0.018 172)',
-        border: '1px solid oklch(0.5 0.02 170 / 0.16)',
-      }}>
-        <div style={{
-          position: 'absolute', top: 4, bottom: 4, left: 4,
-          width: `calc(${100 / options.length}% - 4px)`,
-          borderRadius: 9,
-          background: 'oklch(0.87 0.185 150)',
-          boxShadow: '0 2px 10px oklch(0.87 0.185 150 / 0.40)',
-          zIndex: 1,
-          transition: 'transform 0.22s cubic-bezier(0.22,1,0.36,1)',
-          transform: `translateX(calc(${idx * 100}%))`,
-        }} />
-        {options.map((opt) => (
-          <button
-            key={opt}
-            type="button"
-            role="radio"
-            aria-checked={value === opt}
-            onClick={() => onChange(opt)}
-            className="focus-ring"
-            style={{
-              flex: 1, position: 'relative', zIndex: 2, padding: '8px 2px',
-              borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              background: 'transparent', border: 'none', textAlign: 'center',
-              color: value === opt ? 'oklch(0.15 0.014 168)' : 'oklch(0.72 0.018 165)',
-              transition: 'color 0.18s ease',
-            }}
-          >
-            {fmt(opt)}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Range slider ─────────────────────────────────────────────────────────────
-
-function RangeSlider({ label, value, max, step = 1, unit, note, onChange }: {
-  label: string; value: number; max: number; step?: number; unit: string; note?: string; onChange: (v: number) => void
-}) {
-  const id = useId()
-  const pct = (value / max) * 100
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-        <label htmlFor={id} style={{ fontSize: 14, fontWeight: 600, color: 'oklch(0.84 0.014 165)' }}>{label}</label>
-        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 600, color: 'var(--cl-text)' }}>
-          {value}
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--cl-text-muted)', fontWeight: 400, marginLeft: 4 }}>
-            {unit}
-          </span>
-        </span>
-      </div>
-      <input
-        id={id}
-        type="range" min={0} max={max} step={step} value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="cl-range"
-        style={{
-          background: `linear-gradient(90deg, oklch(0.83 0.105 205), oklch(0.87 0.185 150) ${pct}%, oklch(0.3 0.016 170 / 0.55) ${pct}%)`,
-        }}
-      />
-      {note && (
-        <div style={{ fontSize: 12, color: 'var(--cl-text-muted)', marginTop: 10, lineHeight: 1.5 }}>
-          {note}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Counter ──────────────────────────────────────────────────────────────────
-
-function Counter({ label, value, min = 0, max = 20, unit, onChange }: {
-  label: string; value: number; min?: number; max?: number; unit: string; onChange: (v: number) => void
-}) {
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'oklch(0.84 0.014 165)', marginBottom: 12 }}>
-        {label}
-      </label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        {[
-          { sym: '−', action: () => onChange(Math.max(min, value - 1)) },
-          null,
-          { sym: '+', action: () => onChange(Math.min(max, value + 1)) },
-        ].map((btn, i) =>
-          btn === null ? (
-            <span key={i} style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 26, fontWeight: 700, width: 36, textAlign: 'center', color: 'var(--cl-text)' }}>
-              {value}
-            </span>
-          ) : (
-            <button
-              key={i} type="button" onClick={btn.action}
-              className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-base focus-ring"
-              style={{ background: 'oklch(0.235 0.018 172)', border: '1px solid oklch(0.5 0.02 170 / 0.16)', color: 'var(--cl-text-muted)', flexShrink: 0 }}
-            >
-              {btn.sym}
-            </button>
-          )
-        )}
-        <span style={{ fontSize: 13, color: 'var(--cl-text-muted)', marginLeft: 4 }}>{unit}</span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Toggle switch ────────────────────────────────────────────────────────────
-
-function Toggle({ label, description, value, onChange }: {
-  label: string; description: string; value: boolean; onChange: (v: boolean) => void
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'oklch(0.84 0.014 165)' }}>{label}</div>
-        <div style={{ fontSize: 12, color: 'var(--cl-text-subtle)', marginTop: 2 }}>{description}</div>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={value}
-        onClick={() => onChange(!value)}
-        className="focus-ring"
-        style={{
-          width: 44, height: 24, borderRadius: 999, flexShrink: 0,
-          background: value ? 'oklch(0.87 0.185 150)' : 'oklch(0.3 0.016 170 / 0.5)',
-          border: 'none', cursor: 'pointer', position: 'relative',
-          transition: 'background 0.2s ease',
-          boxShadow: value ? '0 0 8px oklch(0.87 0.185 150 / 0.35)' : 'none',
-        }}
-      >
-        <span style={{
-          position: 'absolute', top: 3, left: value ? 23 : 3,
-          width: 18, height: 18, borderRadius: '50%',
-          background: 'oklch(0.97 0.01 160)',
-          transition: 'left 0.2s cubic-bezier(0.22,1,0.36,1)',
-        }} />
-      </button>
-    </div>
-  )
-}
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
@@ -192,21 +24,6 @@ function SectionHeader({ emoji, title }: { emoji: string; title: string }) {
 
 function Divider() {
   return <div style={{ height: 1, background: 'oklch(0.5 0.02 170 / 0.14)', margin: '8px 0' }} />
-}
-
-// ─── Appliance → kWh conversion constants ─────────────────────────────────────
-// AC 1.5 ton = 1.5 kW/h
-// TV/screen  = 0.1 kW/h
-// Fridge 200L always-on = ~40W = 0.96 kWh/day
-// Base load (lights, phone, router) = 0.3 kWh/day fixed
-// Gas cooking: each session (30 min burner) ≈ 0.08 m³ LPG-equiv
-
-function appliancesToEnergy(
-  acHours: number, tvHours: number, hasFridge: boolean, cookingSessions: number, energySource: 'grid' | 'mixed' | 'renewable'
-): HomeEnergyData {
-  const electricityKwh = +(acHours * 1.5 + tvHours * 0.1 + (hasFridge ? 0.96 : 0) + 0.3).toFixed(2)
-  const gasUnits = +(cookingSessions * 0.08).toFixed(2)
-  return { electricityKwh, gasUnits, energySource }
 }
 
 // ─── Main sheet ───────────────────────────────────────────────────────────────
@@ -334,7 +151,7 @@ export default function QuickLogSheet({
         <div className="space-y-6">
 
           {/* ── TRANSPORT ── */}
-          <div style={{ borderRadius: 14, background: 'oklch(0.235 0.018 172 / 0.5)', border: '1px solid oklch(0.5 0.02 170 / 0.12)', padding: '16px' }}>
+          <Panel>
             <SectionHeader emoji="🚗" title="Transport" />
             <div className="space-y-5">
               <SegmentedPick label="Vehicle type" options={CAR_OPTS} value={carType} onChange={setCarType} />
@@ -351,10 +168,10 @@ export default function QuickLogSheet({
 
               <Counter label="Flight hours" value={flightHours} max={24} unit="hours in air today" onChange={(v) => setFlightHours(v)} />
             </div>
-          </div>
+          </Panel>
 
           {/* ── HOME ENERGY ── */}
-          <div style={{ borderRadius: 14, background: 'oklch(0.235 0.018 172 / 0.5)', border: '1px solid oklch(0.5 0.02 170 / 0.12)', padding: '16px' }}>
+          <Panel>
             <SectionHeader emoji="⚡" title="Home Energy" />
             <div className="space-y-5">
               <SegmentedPick
@@ -362,7 +179,6 @@ export default function QuickLogSheet({
                 options={ENERGY_OPTS}
                 value={energySource}
                 onChange={setEnergySource}
-                formatLabel={(v) => v === 'renewable' ? 'Solar/Wind' : v.charAt(0).toUpperCase() + v.slice(1)}
               />
 
               <Divider />
@@ -399,26 +215,26 @@ export default function QuickLogSheet({
                 ⚡ {energy.electricityKwh} kWh electricity + 🔥 {energy.gasUnits} m³ gas → <strong style={{ color: 'var(--cl-text-muted)' }}>{energyKg} kg CO₂</strong>
               </div>
             </div>
-          </div>
+          </Panel>
 
           {/* ── DIET ── */}
-          <div style={{ borderRadius: 14, background: 'oklch(0.235 0.018 172 / 0.5)', border: '1px solid oklch(0.5 0.02 170 / 0.12)', padding: '16px' }}>
+          <Panel>
             <SectionHeader emoji="🍽️" title="Diet" />
             <div className="space-y-5">
               <SegmentedPick label="Typical diet" options={DIET_OPTS} value={dietType} onChange={setDietType} />
               <Counter label="Meals today" value={mealCount} min={1} max={6} unit="meals eaten" onChange={setMealCount} />
             </div>
-          </div>
+          </Panel>
 
           {/* ── PURCHASES ── */}
-          <div style={{ borderRadius: 14, background: 'oklch(0.235 0.018 172 / 0.5)', border: '1px solid oklch(0.5 0.02 170 / 0.12)', padding: '16px' }}>
+          <Panel>
             <SectionHeader emoji="🛍️" title="Purchases" />
             <div className="space-y-5">
               <Counter label="Online orders placed today" value={orders} max={20} unit="orders (≈ 0.5 kg CO₂ each)" onChange={setOrders} />
               <Counter label="New clothing items bought" value={clothing} max={10} unit="items (≈ 10 kg CO₂ each)" onChange={setClothing} />
               <Counter label="Electronics purchased" value={electronics} max={5} unit="items (≈ 70 kg CO₂ each)" onChange={setElectronics} />
             </div>
-          </div>
+          </Panel>
 
           {/* ── Footer ── */}
           <div style={{ paddingTop: '0.75rem', borderTop: '1px solid oklch(0.5 0.02 170 / 0.14)' }}>

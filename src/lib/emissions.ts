@@ -1,6 +1,6 @@
 import type { TransportData, HomeEnergyData, DietData, PurchasesData, FootprintLog } from '../types'
 
-const FACTORS = {
+export const FACTORS = {
   car: { petrol: 0.192, diesel: 0.171, electric: 0.053, none: 0 },
   flight: 0.255,
   transit: 0.089,
@@ -101,4 +101,46 @@ export function extrapolateMonthly(logs: FootprintLog[]): number {
   if (logs.length === 0) return 0
   const sum = logs.reduce((s, l) => s + l.totalKgCO2, 0)
   return (sum / logs.length) * 30
+}
+
+// Appliance usage → daily HomeEnergyData. Constants match CEA India 2023 estimates.
+// AC 1.5-ton = 1.5 kW, TV/screen = 0.1 kW, 200L fridge ≈ 0.96 kWh/day, base load = 0.3 kWh/day
+// Gas: each 30-min cooking session ≈ 0.08 m³ LPG-equivalent
+export function appliancesToEnergy(
+  acHours: number, tvHours: number, hasFridge: boolean,
+  cookingSessions: number, energySource: HomeEnergyData['energySource']
+): HomeEnergyData {
+  const electricityKwh = +(acHours * 1.5 + tvHours * 0.1 + (hasFridge ? 0.96 : 0) + 0.3).toFixed(2)
+  const gasUnits = +(cookingSessions * 0.08).toFixed(2)
+  return { electricityKwh, gasUnits, energySource }
+}
+
+export interface LogTotals {
+  carKm: number; flightH: number; transitKm: number
+  kwh: number; gas: number
+  orders: number; clothing: number; elec: number
+}
+
+// Single-pass aggregation of 8 log fields — used by the explain-drawer in Dashboard.
+export function aggregateLogTotals(logs: FootprintLog[]): LogTotals {
+  return logs.reduce(
+    (acc, l) => ({
+      carKm:     acc.carKm     + l.transport.carKm,
+      flightH:   acc.flightH   + l.transport.flightHours,
+      transitKm: acc.transitKm + l.transport.transitKm,
+      kwh:       acc.kwh       + l.homeEnergy.electricityKwh,
+      gas:       acc.gas       + l.homeEnergy.gasUnits,
+      orders:    acc.orders    + l.purchases.onlineOrdersCount,
+      clothing:  acc.clothing  + l.purchases.newClothingItems,
+      elec:      acc.elec      + l.purchases.electronicsItems,
+    }),
+    { carKm: 0, flightH: 0, transitKm: 0, kwh: 0, gas: 0, orders: 0, clothing: 0, elec: 0 }
+  )
+}
+
+// Average daily CO₂ from logs; falls back to India daily avg when no logs provided.
+// Always returns a daily-scale value so it can be compared against other daily metrics.
+export function dailyAvgOrFallback(logs: FootprintLog[]): number {
+  if (logs.length === 0) return INDIA_AVERAGE_KG_CO2_PER_MONTH / 30
+  return logs.reduce((s, l) => s + l.totalKgCO2, 0) / logs.length
 }

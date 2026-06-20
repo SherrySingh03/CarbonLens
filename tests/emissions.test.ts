@@ -6,6 +6,8 @@ import {
   calculatePurchasesEmissions,
   calculateTotal,
   getCategoryBreakdown,
+  aggregateLogTotals,
+  dailyAvgOrFallback,
   INDIA_AVERAGE_KG_CO2_PER_MONTH,
   GLOBAL_AVERAGE_KG_CO2_PER_MONTH,
 } from '../src/lib/emissions'
@@ -150,5 +152,98 @@ describe('constants', () => {
   })
   it('GLOBAL_AVERAGE_KG_CO2_PER_MONTH is 375', () => {
     expect(GLOBAL_AVERAGE_KG_CO2_PER_MONTH).toBe(375)
+  })
+})
+
+describe('aggregateLogTotals', () => {
+  const logs: FootprintLog[] = [
+    {
+      id: 'a', date: '2026-06-01',
+      transport:  { carKm: 20,  carType: 'petrol', flightHours: 1,   transitKm: 5  },
+      homeEnergy: { electricityKwh: 8, gasUnits: 0.5, energySource: 'grid' },
+      diet:       { dietType: 'average', mealCount: 3 },
+      purchases:  { onlineOrdersCount: 2, newClothingItems: 1, electronicsItems: 0 },
+      totalKgCO2: 0,
+    },
+    {
+      id: 'b', date: '2026-06-02',
+      transport:  { carKm: 40,  carType: 'petrol', flightHours: 0,   transitKm: 10 },
+      homeEnergy: { electricityKwh: 6, gasUnits: 0.3, energySource: 'grid' },
+      diet:       { dietType: 'average', mealCount: 3 },
+      purchases:  { onlineOrdersCount: 0, newClothingItems: 0, electronicsItems: 1 },
+      totalKgCO2: 0,
+    },
+    {
+      id: 'c', date: '2026-06-03',
+      transport:  { carKm: 0,   carType: 'none',   flightHours: 0.5, transitKm: 20 },
+      homeEnergy: { electricityKwh: 4, gasUnits: 0.2, energySource: 'renewable' },
+      diet:       { dietType: 'vegan', mealCount: 2 },
+      purchases:  { onlineOrdersCount: 3, newClothingItems: 0, electronicsItems: 0 },
+      totalKgCO2: 0,
+    },
+  ]
+
+  it('single-pass totals match 9 independent reduce passes (equivalence)', () => {
+    const result = aggregateLogTotals(logs)
+
+    // 9-pass reference values computed independently
+    expect(result.carKm).toBeCloseTo(logs.reduce((s, l) => s + l.transport.carKm, 0))
+    expect(result.flightH).toBeCloseTo(logs.reduce((s, l) => s + l.transport.flightHours, 0))
+    expect(result.transitKm).toBeCloseTo(logs.reduce((s, l) => s + l.transport.transitKm, 0))
+    expect(result.kwh).toBeCloseTo(logs.reduce((s, l) => s + l.homeEnergy.electricityKwh, 0))
+    expect(result.gas).toBeCloseTo(logs.reduce((s, l) => s + l.homeEnergy.gasUnits, 0))
+    expect(result.orders).toBeCloseTo(logs.reduce((s, l) => s + l.purchases.onlineOrdersCount, 0))
+    expect(result.clothing).toBeCloseTo(logs.reduce((s, l) => s + l.purchases.newClothingItems, 0))
+    expect(result.elec).toBeCloseTo(logs.reduce((s, l) => s + l.purchases.electronicsItems, 0))
+  })
+
+  it('exact values for known input', () => {
+    const r = aggregateLogTotals(logs)
+    expect(r.carKm).toBe(60)
+    expect(r.flightH).toBeCloseTo(1.5)
+    expect(r.transitKm).toBe(35)
+    expect(r.kwh).toBeCloseTo(18)
+    expect(r.gas).toBeCloseTo(1.0)
+    expect(r.orders).toBe(5)
+    expect(r.clothing).toBe(1)
+    expect(r.elec).toBe(1)
+  })
+
+  it('returns all zeros for empty log array', () => {
+    const r = aggregateLogTotals([])
+    expect(r.carKm).toBe(0)
+    expect(r.kwh).toBe(0)
+    expect(r.orders).toBe(0)
+  })
+})
+
+describe('dailyAvgOrFallback', () => {
+  const makeLog = (kg: number): FootprintLog => ({
+    id: '1', date: '2026-06-01',
+    transport: { carKm: 0, carType: 'none', flightHours: 0, transitKm: 0 },
+    homeEnergy: { electricityKwh: 0, gasUnits: 0, energySource: 'grid' },
+    diet: { dietType: 'average', mealCount: 3 },
+    purchases: { onlineOrdersCount: 0, newClothingItems: 0, electronicsItems: 0 },
+    totalKgCO2: kg,
+  })
+
+  it('returns daily-scale India average when no logs (not monthly)', () => {
+    const result = dailyAvgOrFallback([])
+    expect(result).toBeCloseTo(INDIA_AVERAGE_KG_CO2_PER_MONTH / 30)
+    expect(result).not.toBe(INDIA_AVERAGE_KG_CO2_PER_MONTH)
+  })
+
+  it('fallback is ≈ 4.17 kg/day, not 125 kg/month', () => {
+    expect(dailyAvgOrFallback([])).toBeCloseTo(125 / 30)
+  })
+
+  it('returns mean of log totals when logs are present', () => {
+    expect(dailyAvgOrFallback([makeLog(3), makeLog(5), makeLog(4)])).toBeCloseTo(4)
+  })
+
+  it('daily avg from logs is independent of India avg fallback', () => {
+    const withLogs = dailyAvgOrFallback([makeLog(2)])
+    expect(withLogs).toBe(2)
+    expect(withLogs).not.toBeCloseTo(INDIA_AVERAGE_KG_CO2_PER_MONTH / 30)
   })
 })

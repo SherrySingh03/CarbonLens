@@ -41,13 +41,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchGridIntensity().then(setGridStatus)
   }, [])
 
-  const todayLog = allLogs.find((l) => l.date === todayDate()) ?? null
+  const todayLog = useMemo(() => {
+    const today = todayDate()
+    return allLogs.find((l) => l.date === today) ?? null
+  }, [allLogs])
 
-  const currentMonth = new Date().toISOString().slice(0, 7)
-  const monthLogs = useMemo(
-    () => allLogs.filter((l) => l.date.startsWith(currentMonth)),
-    [allLogs, currentMonth]
-  )
+  const monthLogs = useMemo(() => {
+    const currentMonth = new Date().toISOString().slice(0, 7)
+    return allLogs.filter((l) => l.date.startsWith(currentMonth))
+  }, [allLogs])
 
   const monthlyEquivalent = useMemo(() => extrapolateMonthly(monthLogs), [monthLogs])
 

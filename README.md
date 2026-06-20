@@ -9,7 +9,7 @@
 | Verb | Feature |
 |---|---|
 | **Understand** | Eco Score ring (0–850) with colour-coded grade and India/global average comparison; tap-to-explain category bars; tangible equivalences card |
-| **Track** | Daily FootprintLog persistence in localStorage, 12-week heatmap calendar, 30-day trend chart |
+| **Track** | Daily FootprintLog persistence in localStorage, 2-week heatmap calendar, 30-day trend chart |
 | **Reduce** | AI-generated, ranked, actionable tips via Gemini API — sorted by estimated kg CO₂ saved; committing a tip immediately deducts its saving from your Eco Score |
 
 ---

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { TrendingDown, TrendingUp, Minus, PenLine, Info, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import ScoreRing from '../components/ScoreRing'
@@ -8,6 +9,8 @@ import EquivalencesCard from '../components/EquivalencesCard'
 import OnboardingIntro, { useShowIntro } from '../components/OnboardingIntro'
 import {
   getMonthlyBreakdown,
+  aggregateLogTotals,
+  FACTORS,
   INDIA_AVERAGE_KG_CO2_PER_MONTH,
   GLOBAL_AVERAGE_KG_CO2_PER_MONTH,
   ECO_SCORE_MAX,
@@ -15,61 +18,49 @@ import {
 } from '../lib/emissions'
 import type { FootprintLog, InsightTip, UserProfile } from '../types'
 
-// ─── Emission factor constants (for explain drawers) ─────────────────────────
-const CAR_FACTORS: Record<string, number> = { petrol: 0.192, diesel: 0.171, electric: 0.053, none: 0 }
-const GRID_FACTORS: Record<string, number> = { grid: 0.716, mixed: 0.400, renewable: 0.041 }
-const DIET_FACTORS: Record<string, number> = { 'meat-heavy': 7.19, average: 5.63, vegetarian: 3.81, vegan: 2.89 }
-
 function buildExplainData(logs: FootprintLog[]): Record<string, ExplainData> {
   if (logs.length === 0) return {}
   const n = logs.length
 
-  const totalCarKm     = logs.reduce((s, l) => s + l.transport.carKm, 0)
-  const totalFlightH   = logs.reduce((s, l) => s + l.transport.flightHours, 0)
-  const totalTransitKm = logs.reduce((s, l) => s + l.transport.transitKm, 0)
-  const totalKwh       = logs.reduce((s, l) => s + l.homeEnergy.electricityKwh, 0)
-  const totalGas       = logs.reduce((s, l) => s + l.homeEnergy.gasUnits, 0)
-  const totalOrders    = logs.reduce((s, l) => s + l.purchases.onlineOrdersCount, 0)
-  const totalClothing  = logs.reduce((s, l) => s + l.purchases.newClothingItems, 0)
-  const totalElec      = logs.reduce((s, l) => s + l.purchases.electronicsItems, 0)
+  const totals = aggregateLogTotals(logs)
 
   const last = logs[logs.length - 1]
   const carType    = last.transport.carType
   const energySrc  = last.homeEnergy.energySource
   const dietType   = last.diet.dietType
   const mealCount  = last.diet.mealCount
-  const carFactor  = CAR_FACTORS[carType] ?? 0.192
-  const gridFactor = GRID_FACTORS[energySrc] ?? 0.716
+  const carFactor  = FACTORS.car[carType]
+  const gridFactor = FACTORS.electricity[energySrc]
 
   const transportRows = []
-  if (totalCarKm > 0)
-    transportRows.push({ label: `${totalCarKm.toFixed(0)} km · ${carType} car`, factor: `× ${carFactor} kg/km`, kg: totalCarKm * carFactor })
-  if (totalFlightH > 0)
-    transportRows.push({ label: `${totalFlightH.toFixed(1)} h flights`, factor: '× 0.255/km · 800km/h', kg: totalFlightH * 800 * 0.255 })
-  if (totalTransitKm > 0)
-    transportRows.push({ label: `${totalTransitKm.toFixed(0)} km transit`, factor: '× 0.089 kg/km', kg: totalTransitKm * 0.089 })
+  if (totals.carKm > 0)
+    transportRows.push({ label: `${totals.carKm.toFixed(0)} km · ${carType} car`, factor: `× ${carFactor} kg/km`, kg: totals.carKm * carFactor })
+  if (totals.flightH > 0)
+    transportRows.push({ label: `${totals.flightH.toFixed(1)} h flights`, factor: `× ${FACTORS.flight}/km · 800km/h`, kg: totals.flightH * 800 * FACTORS.flight })
+  if (totals.transitKm > 0)
+    transportRows.push({ label: `${totals.transitKm.toFixed(0)} km transit`, factor: `× ${FACTORS.transit} kg/km`, kg: totals.transitKm * FACTORS.transit })
   if (transportRows.length === 0)
     transportRows.push({ label: 'No car, flight or transit logged', factor: '', kg: 0 })
 
   const energyRows = []
-  if (totalKwh > 0)
-    energyRows.push({ label: `${totalKwh.toFixed(1)} kWh · ${energySrc}`, factor: `× ${gridFactor} kg/kWh`, kg: totalKwh * gridFactor })
-  if (totalGas > 0)
-    energyRows.push({ label: `${totalGas.toFixed(1)} m³ gas`, factor: '× 2.04 kg/m³', kg: totalGas * 2.04 })
+  if (totals.kwh > 0)
+    energyRows.push({ label: `${totals.kwh.toFixed(1)} kWh · ${energySrc}`, factor: `× ${gridFactor} kg/kWh`, kg: totals.kwh * gridFactor })
+  if (totals.gas > 0)
+    energyRows.push({ label: `${totals.gas.toFixed(1)} m³ gas`, factor: `× ${FACTORS.gas} kg/m³`, kg: totals.gas * FACTORS.gas })
   if (energyRows.length === 0)
     energyRows.push({ label: 'No energy logged', factor: '', kg: 0 })
 
-  const dietMonthlyFactor = DIET_FACTORS[dietType] ?? 5.63
+  const dietMonthlyFactor = FACTORS.diet[dietType]
   const dietKgPerDay = (dietMonthlyFactor / 30) * (mealCount / 3)
   const dietTotal = dietKgPerDay * n
 
   const purchaseRows = []
-  if (totalOrders > 0)
-    purchaseRows.push({ label: `${totalOrders} online orders`, factor: '× 0.5 kg/order', kg: totalOrders * 0.5 })
-  if (totalClothing > 0)
-    purchaseRows.push({ label: `${totalClothing} clothing items`, factor: '× 10 kg/item', kg: totalClothing * 10 })
-  if (totalElec > 0)
-    purchaseRows.push({ label: `${totalElec} electronics`, factor: '× 70 kg/item', kg: totalElec * 70 })
+  if (totals.orders > 0)
+    purchaseRows.push({ label: `${totals.orders} online orders`, factor: `× ${FACTORS.onlineOrder} kg/order`, kg: totals.orders * FACTORS.onlineOrder })
+  if (totals.clothing > 0)
+    purchaseRows.push({ label: `${totals.clothing} clothing items`, factor: `× ${FACTORS.clothing} kg/item`, kg: totals.clothing * FACTORS.clothing })
+  if (totals.elec > 0)
+    purchaseRows.push({ label: `${totals.elec} electronics`, factor: `× ${FACTORS.electronics} kg/item`, kg: totals.elec * FACTORS.electronics })
   if (purchaseRows.length === 0)
     purchaseRows.push({ label: 'No purchases logged', factor: '', kg: 0 })
 
@@ -111,6 +102,9 @@ function EcoScoreInfo({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'oklch(0 0 0 / 0.5)' }} />
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="eco-score-info-title"
         className="relative"
         style={{
           maxWidth: 380, width: '100%',
@@ -122,10 +116,10 @@ function EcoScoreInfo({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--cl-text)' }}>
+          <span id="eco-score-info-title" style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--cl-text)' }}>
             How Eco Score works
           </span>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cl-text-subtle)' }}>
+          <button onClick={onClose} aria-label="Close" className="focus-ring" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cl-text-subtle)', borderRadius: 8 }}>
             <X size={16} />
           </button>
         </div>
@@ -272,9 +266,22 @@ function AICoachCard({ tips }: { tips: InsightTip[] }) {
           <p className="text-sm leading-relaxed mb-4" style={{ color: 'oklch(0.9 0.012 165)', lineHeight: 1.55 }}>
             Visit the Actions tab to generate your personal AI plan — six specific changes ranked by CO₂ impact.
           </p>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 13px', borderRadius: 999, background: 'oklch(0.87 0.185 150 / 0.1)', border: '1px solid oklch(0.87 0.185 150 / 0.25)' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'oklch(0.87 0.185 150)' }}>Generate my plan →</span>
-          </div>
+          <Link
+            to="/insights"
+            className="inline-flex items-center gap-1.5 focus-ring"
+            aria-label="Go to Actions tab to generate your AI reduction plan"
+            style={{
+              padding: '6px 13px', borderRadius: 999, textDecoration: 'none',
+              background: 'oklch(0.87 0.185 150 / 0.1)',
+              border: '1px solid oklch(0.87 0.185 150 / 0.25)',
+              fontSize: 12, fontWeight: 600, color: 'oklch(0.87 0.185 150)',
+              transition: 'background 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'oklch(0.87 0.185 150 / 0.18)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'oklch(0.87 0.185 150 / 0.1)' }}
+          >
+            Generate my plan →
+          </Link>
         </>
       )}
     </div>
