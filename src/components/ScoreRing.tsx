@@ -135,8 +135,8 @@ export default function ScoreRing({ score, kg, size = 240 }: ScoreRingProps) {
 
       {/* Grade pill */}
       <rect
-        x={cx - 52} y={size * 0.62}
-        width={104} height={26}
+        x={cx - 42} y={size * 0.62}
+        width={85} height={26}
         rx={13}
         fill={grade.bg}
         stroke={grade.border}

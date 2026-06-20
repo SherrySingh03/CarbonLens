@@ -373,9 +373,9 @@ export default function Landing() {
                 style={{ fontSize: 'clamp(30px, 5vw, 52px)', lineHeight: 1.04, letterSpacing: '-0.03em', marginBottom: 18, color: 'var(--cl-text)' }}
               >
                 See your carbon.{' '}
-                <span style={{ background: 'linear-gradient(100deg, oklch(0.87 0.185 150), oklch(0.83 0.105 205))', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  Then bend it down.
-                </span>
+                <div style={{ background: 'linear-gradient(100deg, oklch(0.87 0.185 150), oklch(0.83 0.105 205))', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  Then bring it down.
+                </div>
               </motion.h1>
 
               {/* Description */}
